@@ -1,4 +1,7 @@
 from gpiozero import LED
+import time
 
 led = LED(17)
-led.blink()
+led.on()
+time.sleep(1)
+led.off()
