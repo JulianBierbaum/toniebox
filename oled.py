@@ -1,41 +1,36 @@
 import time
-import Adafruit_SSD1306
-from PIL import Image
-from PIL import ImageDraw
-from PIL import ImageFont
+import board
+import busio
+from adafruit_ssd1306 import SSD1306_I2C
 
-# Initialize the display
-OLED_WIDTH = 128
-OLED_HEIGHT = 64
-OLED_RST = 24  # GPIO pin used for reset (check your setup)
-OLED_DC = 23   # GPIO pin used for DC (check your setup)
-OLED_CS = 8    # GPIO pin used for chip select (check your setup)
+# Define the screen dimensions
+SCREEN_WIDTH = 128
+SCREEN_HEIGHT = 64
 
-# Initialize the OLED display using I2C
-disp = Adafruit_SSD1306.SSD1306_128_64(rst=OLED_RST, dc=OLED_DC, cs=OLED_CS)
+# I2C setup
+i2c = busio.I2C(board.SCL, board.SDA)
 
-# Initialize library (hardware reset)
-disp.begin()
+# Create the display object
+display = SSD1306_I2C(SCREEN_WIDTH, SCREEN_HEIGHT, i2c)
 
-# Clear the display
-disp.clear()
-disp.display()
+def reset_display():
+    """Reset the OLED display by clearing and reinitializing."""
+    print("Resetting display...")
+    display.fill(0)  # Clear the display buffer
+    display.show()   # Push cleared buffer to the display
+    time.sleep(1)    # Wait for a second
 
-# Create an image object to draw on the display
-image = Image.new('1', (OLED_WIDTH, OLED_HEIGHT))
-draw = ImageDraw.Draw(image)
+    # Reinitialize display (soft reset)
+    display.fill(0)
+    display.text("OLED Reset Successful!", 0, 0, 1)
+    display.show()
 
-# Define the font and size (default font or load custom font)
-font = ImageFont.load_default()
-
-# Draw some text on the image
-text = "Hello, Raspberry Pi!"
-text_width, text_height = draw.textsize(text, font=font)
-draw.text(((OLED_WIDTH - text_width) // 2, (OLED_HEIGHT - text_height) // 2), text, font=font, fill=255)
-
-# Display the image on the OLED
-disp.image(image)
-disp.display()
-
-# Pause for a few seconds
-time.sleep(5)
+# Main program
+try:
+    reset_display()
+    while True:
+        # Example: periodically reset the display
+        time.sleep(5)
+        reset_display()
+except KeyboardInterrupt:
+    print("Program terminated.")
