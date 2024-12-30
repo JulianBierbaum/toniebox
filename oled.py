@@ -1,14 +1,10 @@
 import time
-import board
-import busio
 from adafruit_ssd1306 import SSD1306_I2C
 
 # Define the screen dimensions
 SCREEN_WIDTH = 128
 SCREEN_HEIGHT = 64
 
-# I2C setup
-i2c = busio.I2C(board.SCL, board.SDA)
 
 # Create the display object
 display = SSD1306_I2C(SCREEN_WIDTH, SCREEN_HEIGHT, i2c)
