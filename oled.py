@@ -1,32 +1,35 @@
-import time
-from adafruit_ssd1306 import SSD1306_I2C
+from luma.core.interface.serial import i2c, spi
+from luma.core.render import canvas
+from luma.oled.device import sh1106
+from PIL import ImageFont
 
-# Define the screen dimensions
-SCREEN_WIDTH = 128
-SCREEN_HEIGHT = 64
+def main():
+    # Choose the communication interface (I2C or SPI)
+    # Uncomment the appropriate line depending on your connection:
+    
+    # I2C interface (default address 0x3C or 0x3D)
+    serial = i2c(port=1, address=0x3C)
+    
+    # SPI interface
+    # serial = spi(port=0, device=0, gpio_DC=24, gpio_RST=25)
+    
+    # Create the SH1106 device instance
+    device = sh1106(serial)
+    
+    # Display some text
+    with canvas(device) as draw:
+        # Load a custom font or use default
+        # Custom font (optional)
+        # font = ImageFont.truetype("arial.ttf", size=14)
+        font = None  # Use default font
+        
+        # Draw text on the display
+        draw.text((10, 10), "Hello, SH1106!", fill="white", font=font)
+        draw.text((10, 30), "Raspberry Pi", fill="white", font=font)
 
+    # Keep the display on for 10 seconds
+    import time
+    time.sleep(10)
 
-# Create the display object
-display = SSD1306_I2C(SCREEN_WIDTH, SCREEN_HEIGHT, i2c)
-
-def reset_display():
-    """Reset the OLED display by clearing and reinitializing."""
-    print("Resetting display...")
-    display.fill(0)  # Clear the display buffer
-    display.show()   # Push cleared buffer to the display
-    time.sleep(1)    # Wait for a second
-
-    # Reinitialize display (soft reset)
-    display.fill(0)
-    display.text("OLED Reset Successful!", 0, 0, 1)
-    display.show()
-
-# Main program
-try:
-    reset_display()
-    while True:
-        # Example: periodically reset the display
-        time.sleep(5)
-        reset_display()
-except KeyboardInterrupt:
-    print("Program terminated.")
+if __name__ == "__main__":
+    main()
