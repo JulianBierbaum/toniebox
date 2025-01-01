@@ -30,10 +30,10 @@ class Audio:
     def play(self, file_id):
         file_path = self.get_file_path(file_id)
         if not file_path:
-            print(f"No audio file mapped for ID: {file_id}")
+            print(f"No audio file mapped for id: {file_id}")
             return
 
-        self.file_path = f"files/{file_path}"
+        self.file_path = f"/media/pi/INTENSO/{file_path}"
         self.audio_thread = th.Thread(target=self._play_audio).start()
 
     def _play_audio(self):
