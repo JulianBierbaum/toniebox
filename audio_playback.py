@@ -28,7 +28,6 @@ class Audio:
         pg.mixer.init()
 
     def play(self, file_id):
-        # Get the file path from the database
         file_path = self.get_file_path(file_id)
         if not file_path:
             print(f"No audio file mapped for ID: {file_id}")
@@ -41,6 +40,7 @@ class Audio:
         try:
             pg.mixer.music.load(self.file_path)
             pg.mixer.music.play()
+            print("playing audio: " + self.file_path)
 
             while pg.mixer.music.get_busy():
                 pg.time.Clock().tick(10)
