@@ -26,7 +26,7 @@ class Audio:
         pg.mixer.init()
         self.session = Session()
     
-    def start_player():
+    def start_player(self):
         while True:
             id, text = reader.read_no_block()
             print(id)
