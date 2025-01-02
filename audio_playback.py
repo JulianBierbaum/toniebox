@@ -33,8 +33,8 @@ class Audio:
             self.session.commit()
 
     def play(self, file_id):
-        file = self.get_file(file_id)
-        if not file:
+        self.file = self.get_file(file_id)
+        if not self.file:
             print(f"No audio file mapped for id: {file_id}")
             return
 
