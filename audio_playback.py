@@ -10,6 +10,7 @@ import os
 
 base =  declarative_base()
 DATABASE_URL = "sqlite:///rfid_audio.db"
+CURRENT_AUDIO = ""
 
 class RFIDAudio(base):
     __tablename__ = "rfid_audio"
@@ -37,13 +38,14 @@ class Audio:
             print(f"No audio file mapped for id: {file_id}")
             return
 
-        self.file = f"/media/pi/INTENSO/{file}"
         self.audio_thread = th.Thread(target=self._play_audio).start()
 
     def _play_audio(self):
         try:
-            pg.mixer.music.load(self.file)
+            pg.mixer.music.load(f"/media/pi/INTENSO/{self.file}")
             pg.mixer.music.play()
+            
+            CURRENT_AUDIO = self.file
             print("playing audio: " + self.file)
 
             while pg.mixer.music.get_busy():
