@@ -25,6 +25,7 @@ class Audio:
     def __init__(self):
         pg.mixer.init()
         self.session = Session()
+
         if not self.session.query(RFIDAudio).first():
             record = RFIDAudio(id="631430949643", file="outro.mp3")
             self.session.add(record)
@@ -81,7 +82,6 @@ class Audio:
 
         while True:
             id, text = reader.read_no_block()
-            print(id)
 
             if id is not None:
                 if id != current_id:
