@@ -25,6 +25,10 @@ class Audio:
     def __init__(self):
         pg.mixer.init()
         self.session = Session()
+        if not self.session.query(RFIDAudio).first():
+            record = RFIDAudio(id="631430949643", file="outro.mp3")
+            self.session.add(record)
+            self.session.commit()
 
     def play(self, file_id):
         file = self.get_file(file_id)
