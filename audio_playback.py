@@ -88,7 +88,7 @@ class Audio:
             if id is not None:
                 if id != current_id:
                     current_id = id
-                    audio.play(str(id))
+                    self.play(str(id))
                 time.sleep(2)
 
             if id is None:
@@ -97,7 +97,7 @@ class Audio:
                 none_counter = 0
 
             if none_counter >= 2:
-                audio.stop()
+                self.stop()
                 none_counter = 0
                 current_id = 0
 
