@@ -112,9 +112,11 @@ player_thread = th.Thread(target=audio.start_player()).start()
 while True:
     print("Options: ")
     print("1. show current file")
+    
+    user_input = input("> ")
 
-    match input():
+    match user_input:
         case "1":
             print(CURRENT_AUDIO)
         case _:
-            print("Invalid Input!")
+            print("Invalid option")
