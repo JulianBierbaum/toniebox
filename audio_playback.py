@@ -103,20 +103,25 @@ class Audio:
 
             time.sleep(0.1)
 
-audio = Audio()
+def main():
+    audio = Audio()
 
-print(audio.get_files_in_folder())
+    print(audio.get_files_in_folder())
 
-player_thread = th.Thread(target=audio.start_player()).start()
+    player_thread = th.Thread(target=audio.start_player()).start()
 
-while True:
-    print("Options: ")
-    print("1. show current file")
-    
-    user_input = input("> ")
+    while True:
+        print("Options: ")
+        print("1. show current file")
+        
+        user_input = input("> ")
 
-    match user_input:
-        case "1":
-            print(CURRENT_AUDIO)
-        case _:
-            print("Invalid option")
+        match user_input:
+            case "1":
+                print(CURRENT_AUDIO)
+            case _:
+                print("Invalid option")
+
+
+if __name__ == "__main__":
+    main()
