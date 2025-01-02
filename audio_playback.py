@@ -8,10 +8,10 @@ from sqlalchemy.orm import declarative_base
 import time
 import os
 
-Base =  declarative_base()
+base =  declarative_base()
 DATABASE_URL = "sqlite:///rfid_audio.db"
 
-class RFIDAudio(Base):
+class RFIDAudio(base):
     __tablename__ = "rfid_audio"
 
     id = Column(String, primary_key=True)
@@ -19,7 +19,7 @@ class RFIDAudio(Base):
 
 engine = create_engine(DATABASE_URL, echo=False)
 Session = sessionmaker(bind=engine)
-Base.metadata.create_all(engine)
+base.metadata.create_all(engine)
 
 class Audio:
     def __init__(self):
