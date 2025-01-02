@@ -11,13 +11,13 @@ def initialize_database():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS rfid_audio (
             id TEXT PRIMARY KEY,
-            file_path TEXT NOT NULL
+            file TEXT NOT NULL
         )
     """)
 
     cursor.execute("SELECT COUNT(*) FROM rfid_audio")
     if cursor.fetchone()[0] == 0:
-        cursor.executemany("INSERT INTO rfid_audio (id, file_path) VALUES (?, ?)", [
+        cursor.executemany("INSERT INTO rfid_audio (id, file) VALUES (?, ?)", [
             ("631430949643", "outro.mp3"),
         ])
     conn.commit()
@@ -28,19 +28,19 @@ class Audio:
         pg.mixer.init()
 
     def play(self, file_id):
-        file_path = self.get_file_path(file_id)
-        if not file_path:
+        file = self.get_file(file_id)
+        if not file:
             print(f"No audio file mapped for id: {file_id}")
             return
 
-        self.file_path = f"/media/pi/INTENSO/{file_path}"
+        self.file = f"/media/pi/INTENSO/{file}"
         self.audio_thread = th.Thread(target=self._play_audio).start()
 
     def _play_audio(self):
         try:
-            pg.mixer.music.load(self.file_path)
+            pg.mixer.music.load(self.file)
             pg.mixer.music.play()
-            print("playing audio: " + self.file_path)
+            print("playing audio: " + self.file)
 
             while pg.mixer.music.get_busy():
                 pg.time.Clock().tick(10)
@@ -50,13 +50,17 @@ class Audio:
     def stop(self):
         pg.mixer.music.stop()
 
-    def get_file_path(self, file_id):
+    def get_file(self, file_id):
         conn = sqlite3.connect("rfid_audio.db")
         cursor = conn.cursor()
-        cursor.execute("SELECT file_path FROM rfid_audio WHERE id = ?", (file_id,))
+        cursor.execute("SELECT file FROM rfid_audio WHERE id = ?", (file_id,))
         result = cursor.fetchone()
         conn.close()
         return result[0] if result else None
+    
+    def get_files(self):
+        return
+        
 
     def __del__(self):
         pg.mixer.quit()
