@@ -4,10 +4,11 @@ from mfrc522 import SimpleMFRC522
 from sqlalchemy import create_engine, Column, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base
 import time
 import os
 
-Base = declarative_base()
+Base =  declarative_base()
 DATABASE_URL = "sqlite:///rfid_audio.db"
 
 class RFIDAudio(Base):
