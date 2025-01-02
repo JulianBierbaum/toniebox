@@ -1,32 +1,29 @@
 import pygame as pg
 import threading as th
 from mfrc522 import SimpleMFRC522
-import sqlite3
+from sqlalchemy import create_engine, Column, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 import time
 import os
 
-def initialize_database():
-    conn = sqlite3.connect("rfid_audio.db")
-    cursor = conn.cursor()
+Base = declarative_base()
+DATABASE_URL = "sqlite:///rfid_audio.db"
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS rfid_audio (
-            id TEXT PRIMARY KEY,
-            file TEXT NOT NULL
-        )
-    """)
+class RFIDAudio(Base):
+    __tablename__ = "rfid_audio"
 
-    cursor.execute("SELECT COUNT(*) FROM rfid_audio")
-    if cursor.fetchone()[0] == 0:
-        cursor.executemany("INSERT INTO rfid_audio (id, file) VALUES (?, ?)", [
-            ("631430949643", "outro.mp3"),
-        ])
-    conn.commit()
-    conn.close()
+    id = Column(String, primary_key=True)
+    file = Column(String, nullable=False)
+
+engine = create_engine(DATABASE_URL, echo=False)
+Session = sessionmaker(bind=engine)
+Base.metadata.create_all(engine)
 
 class Audio:
     def __init__(self):
         pg.mixer.init()
+        self.session = Session()
 
     def play(self, file_id):
         file = self.get_file(file_id)
@@ -52,35 +49,32 @@ class Audio:
         pg.mixer.music.stop()
 
     def get_file(self, file_id):
-        conn = sqlite3.connect("rfid_audio.db")
-        cursor = conn.cursor()
-        cursor.execute("SELECT file FROM rfid_audio WHERE id = ?", (file_id,))
-        result = cursor.fetchone()
-        conn.close()
-        return result[0] if result else None
-    
+        record = self.session.query(RFIDAudio).filter_by(id=file_id).first()
+        return record.file if record else None
+
     def get_files_in_folder(self):
         folder_path = "/media/pi/INTENSO"
-        files = []
-        
-        for file in os.listdir(folder_path):
-            if os.path.isfile(os.path.join(folder_path, file)):
-                files.append(file)
+        return [file for file in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, file))]
 
-        print(files)
+    def add_file_to_db(self, file_id, file_name):
+        record = self.session.query(RFIDAudio).filter_by(id=file_id).first()
+        if record:
+            record.file = file_name
+        else:
+            record = RFIDAudio(id=file_id, file=file_name)
+            self.session.add(record)
+        self.session.commit()
 
     def __del__(self):
         pg.mixer.quit()
-
-
-initialize_database()
+        self.session.close()
 
 audio = Audio()
 reader = SimpleMFRC522()
 current_id = 0
 none_counter = 0
 
-audio.get_files_in_folder()
+print(audio.get_files_in_folder())
 
 while True:
     id, text = reader.read_no_block()
