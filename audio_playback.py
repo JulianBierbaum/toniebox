@@ -25,29 +25,6 @@ class Audio:
     def __init__(self):
         pg.mixer.init()
         self.session = Session()
-    
-    def start_player(self):
-        while True:
-            id, text = reader.read_no_block()
-            print(id)
-
-            if id is not None:
-                if id != current_id:
-                    current_id = id
-                    audio.play(str(id))
-                time.sleep(2)
-
-            if id is None:
-                none_counter += 1
-            else:
-                none_counter = 0
-
-            if none_counter >= 2:
-                audio.stop()
-                none_counter = 0
-                current_id = 0
-
-            time.sleep(0.1)
 
     def play(self, file_id):
         file = self.get_file(file_id)
@@ -92,12 +69,36 @@ class Audio:
     def __del__(self):
         pg.mixer.quit()
         self.session.close()
+    
+    def start_player(self):
+        reader = SimpleMFRC522()
+        current_id = 0
+        none_counter = 0
+
+        while True:
+            id, text = reader.read_no_block()
+            print(id)
+
+            if id is not None:
+                if id != current_id:
+                    current_id = id
+                    audio.play(str(id))
+                time.sleep(2)
+
+            if id is None:
+                none_counter += 1
+            else:
+                none_counter = 0
+
+            if none_counter >= 2:
+                audio.stop()
+                none_counter = 0
+                current_id = 0
+
+            time.sleep(0.1)
 
 audio = Audio()
-reader = SimpleMFRC522()
-current_id = 0
-none_counter = 0
 
 print(audio.get_files_in_folder())
 
-audio.start_player()
+player_thread = th.Thread(target=audio.start_player()).start()
