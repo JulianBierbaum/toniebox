@@ -4,11 +4,10 @@ from mfrc522 import SimpleMFRC522
 from sqlalchemy import create_engine, Column, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import declarative_base
 import time
 import os
 
-Base =  declarative_base()
+Base = declarative_base()
 DATABASE_URL = "sqlite:///rfid_audio.db"
 
 class RFIDAudio(Base):
@@ -39,7 +38,7 @@ class Audio:
         try:
             pg.mixer.music.load(self.file)
             pg.mixer.music.play()
-            print("playing audio: " + self.file)
+            print("Playing audio: " + self.file)
 
             while pg.mixer.music.get_busy():
                 pg.time.Clock().tick(10)
@@ -70,31 +69,66 @@ class Audio:
         pg.mixer.quit()
         self.session.close()
 
-audio = Audio()
-reader = SimpleMFRC522()
-current_id = 0
-none_counter = 0
+def main():
+    audio = Audio()
+    reader = SimpleMFRC522()
+    current_id = None
+    none_counter = 0
 
-print(audio.get_files_in_folder())
+    while True:
+        id, text = reader.read_no_block()
 
-while True:
-    id, text = reader.read_no_block()
-    print(id)
+        if id is not None:
+            if id != current_id:
+                current_id = id
+                print(f"RFID ID read: {id}")
 
-    if id is not None:
-        if id != current_id:
-            current_id = id
-            audio.play(str(id))
-        time.sleep(2)
+                print("Options:")
+                print("1. Play associated file")
+                print("2. Add a new file to this ID")
+                print("3. Skip")
 
-    if id is None:
-        none_counter += 1
-    else:
-        none_counter = 0
+                option = input("Select an option: ")
 
-    if none_counter >= 2:
-        audio.stop()
-        none_counter = 0
-        current_id = 0
+                if option == "1":
+                    audio.play(str(id))
 
-    time.sleep(0.1)
+                elif option == "2":
+                    print("Available files:")
+                    files = audio.get_files_in_folder()
+                    for i, file in enumerate(files):
+                        print(f"{i + 1}. {file}")
+
+                    file_choice = input("Select the file number to associate: ")
+                    try:
+                        file_choice = int(file_choice)
+                        if 1 <= file_choice <= len(files):
+                            audio.add_file_to_db(str(id), files[file_choice - 1])
+                            print(f"File {files[file_choice - 1]} associated with ID {id}.")
+                        else:
+                            print("Invalid file choice.")
+                    except ValueError:
+                        print("Invalid input. Please enter a number.")
+
+                elif option == "3":
+                    print("Skipping...")
+
+                else:
+                    print("Invalid option.")
+
+                time.sleep(2)  # Debounce
+
+        if id is None:
+            none_counter += 1
+        else:
+            none_counter = 0
+
+        if none_counter >= 2:
+            audio.stop()
+            none_counter = 0
+            current_id = None
+
+        time.sleep(0.1)
+
+if __name__ == "__main__":
+    main()
