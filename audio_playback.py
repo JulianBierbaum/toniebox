@@ -80,6 +80,8 @@ reader = SimpleMFRC522()
 current_id = 0
 none_counter = 0
 
+audio.get_files_in_folder()
+
 while True:
     id, text = reader.read_no_block()
     print(id)
