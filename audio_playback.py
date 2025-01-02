@@ -25,6 +25,29 @@ class Audio:
     def __init__(self):
         pg.mixer.init()
         self.session = Session()
+    
+    def start_player():
+        while True:
+            id, text = reader.read_no_block()
+            print(id)
+
+            if id is not None:
+                if id != current_id:
+                    current_id = id
+                    audio.play(str(id))
+                time.sleep(2)
+
+            if id is None:
+                none_counter += 1
+            else:
+                none_counter = 0
+
+            if none_counter >= 2:
+                audio.stop()
+                none_counter = 0
+                current_id = 0
+
+            time.sleep(0.1)
 
     def play(self, file_id):
         file = self.get_file(file_id)
@@ -77,24 +100,4 @@ none_counter = 0
 
 print(audio.get_files_in_folder())
 
-while True:
-    id, text = reader.read_no_block()
-    print(id)
-
-    if id is not None:
-        if id != current_id:
-            current_id = id
-            audio.play(str(id))
-        time.sleep(2)
-
-    if id is None:
-        none_counter += 1
-    else:
-        none_counter = 0
-
-    if none_counter >= 2:
-        audio.stop()
-        none_counter = 0
-        current_id = 0
-
-    time.sleep(0.1)
+audio.start_player()
