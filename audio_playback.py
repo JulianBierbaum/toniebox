@@ -6,6 +6,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import time
 import os
+import queue
 
 Base = declarative_base()
 DATABASE_URL = "sqlite:///rfid_audio.db"
@@ -69,11 +70,60 @@ class Audio:
         pg.mixer.quit()
         self.session.close()
 
+def ui_thread(queue):
+    while True:
+        if queue.empty():
+            print("Options:")
+            print("1. View available files")
+            print("2. Add file to database")
+            print("3. Exit")
+
+            option = input("Select an option: ")
+
+            if option == "1":
+                audio = Audio()
+                print("Available files:")
+                files = audio.get_files_in_folder()
+                for i, file in enumerate(files):
+                    print(f"{i + 1}. {file}")
+
+            elif option == "2":
+                audio = Audio()
+                rfid_id = input("Enter RFID ID to associate with a file: ")
+                print("Available files:")
+                files = audio.get_files_in_folder()
+                for i, file in enumerate(files):
+                    print(f"{i + 1}. {file}")
+
+                file_choice = input("Select the file number to associate: ")
+                try:
+                    file_choice = int(file_choice)
+                    if 1 <= file_choice <= len(files):
+                        audio.add_file_to_db(rfid_id, files[file_choice - 1])
+                        print(f"File {files[file_choice - 1]} associated with ID {rfid_id}.")
+                    else:
+                        print("Invalid file choice.")
+                except ValueError:
+                    print("Invalid input. Please enter a number.")
+
+            elif option == "3":
+                print("Exiting UI thread...")
+                break
+
+            else:
+                print("Invalid option.")
+
+        time.sleep(1)
+
 def main():
     audio = Audio()
     reader = SimpleMFRC522()
     current_id = None
     none_counter = 0
+    ui_queue = queue.Queue()
+
+    ui = th.Thread(target=ui_thread, args=(ui_queue,), daemon=True)
+    ui.start()
 
     while True:
         id, text = reader.read_no_block()
@@ -81,52 +131,25 @@ def main():
         if id is not None:
             if id != current_id:
                 current_id = id
+                ui_queue.put("ID_DETECTED")
                 print(f"RFID ID read: {id}")
 
-                print("Options:")
-                print("1. Play associated file")
-                print("2. Add a new file to this ID")
-                print("3. Skip")
-
-                option = input("Select an option: ")
-
-                if option == "1":
+                file = audio.get_file(str(id))
+                if file:
                     audio.play(str(id))
-
-                elif option == "2":
-                    print("Available files:")
-                    files = audio.get_files_in_folder()
-                    for i, file in enumerate(files):
-                        print(f"{i + 1}. {file}")
-
-                    file_choice = input("Select the file number to associate: ")
-                    try:
-                        file_choice = int(file_choice)
-                        if 1 <= file_choice <= len(files):
-                            audio.add_file_to_db(str(id), files[file_choice - 1])
-                            print(f"File {files[file_choice - 1]} associated with ID {id}.")
-                        else:
-                            print("Invalid file choice.")
-                    except ValueError:
-                        print("Invalid input. Please enter a number.")
-
-                elif option == "3":
-                    print("Skipping...")
-
                 else:
-                    print("Invalid option.")
+                    print("No file associated with this ID.")
 
                 time.sleep(2)  # Debounce
 
         if id is None:
             none_counter += 1
-        else:
-            none_counter = 0
-
-        if none_counter >= 2:
-            audio.stop()
-            none_counter = 0
-            current_id = None
+            if none_counter >= 2:
+                audio.stop()
+                none_counter = 0
+                current_id = None
+                while not ui_queue.empty():
+                    ui_queue.get()  # Clear queue
 
         time.sleep(0.1)
 
