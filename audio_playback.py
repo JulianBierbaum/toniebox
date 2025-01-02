@@ -3,6 +3,7 @@ import threading as th
 from mfrc522 import SimpleMFRC522
 import sqlite3
 import time
+import os
 
 def initialize_database():
     conn = sqlite3.connect("rfid_audio.db")
@@ -58,9 +59,15 @@ class Audio:
         conn.close()
         return result[0] if result else None
     
-    def get_files(self):
-        return
+    def get_files_in_folder(self):
+        folder_path = "/media/pi/INTENSO"
+        files = []
         
+        for file in os.listdir(folder_path):
+            if os.path.isfile(os.path.join(folder_path, file)):
+                files.append(file)
+
+        print(files)
 
     def __del__(self):
         pg.mixer.quit()
