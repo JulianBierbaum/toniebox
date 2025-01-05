@@ -42,7 +42,7 @@ class Audio:
 
     def _play_audio(self):
         try:
-            pg.mixer.music.load(f"/media/pi/INTENSO/{self.file}")
+            pg.mixer.music.load(f"/media/pi/{self.file}")
             pg.mixer.music.play()
             
             CURRENT_AUDIO = self.file
@@ -61,7 +61,7 @@ class Audio:
         return record.file if record else None
 
     def get_files_in_folder(self):
-        folder_path = "/media/pi/INTENSO"
+        folder_path = "/media/pi"
         return [file for file in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, file))]
 
     def add_file_to_db(self, file_id, file_name):
