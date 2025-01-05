@@ -1,9 +1,9 @@
 from gpiozero import Button
 from signal import pause
 
-up = Button(24)
-down = Button(23)
-confirm = Button(22)
+up = Button(24, bounce_time=0.2)
+down = Button(23, bounce_time=0.2)
+confirm = Button(22, bounce_time=0.2)
 
 def on_up_pressed():
     print("up pressed")
