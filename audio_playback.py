@@ -151,6 +151,23 @@ up.when_pressed = on_up_pressed
 down.when_pressed = on_down_pressed
 confirm.when_pressed = on_confirm_pressed
 
+def display_current_audio(audio):
+    global menu_confirmed
+    menu_confirmed = False
+    os.system('clear')
+    print("\n=== Currently Playing ===")
+
+    while not menu_confirmed:
+        current = audio.get_current_audio()
+        os.system('clear')
+        print("\n=== Currently Playing ===")
+        if current:
+            print(f"Audio: {current}")
+        else:
+            print("No audio is playing.")
+        print("\n(Press the Confirm button to return to the menu.)")
+        time.sleep(0.5)
+
 def display_menu():
     os.system('clear')
     print("=== RFID Audio Player Menu ===")
@@ -175,10 +192,7 @@ def main():
             time.sleep(0.1)
 
         if current_selection == 0:
-            current = audio.get_current_audio()
-            os.system('clear')
-            print(f"\nCurrently Playing: {current if current else 'No audio is playing.'}")
-            input("\nPress Enter to return to the menu.")
+            display_current_audio(audio)
 
         elif current_selection == 1:
             print("\n=== Current Database Entries ===")
@@ -199,13 +213,15 @@ def main():
                     overwrite = input("Do you want to overwrite this entry? (yes/no): ").strip().lower()
                     if overwrite != "yes":
                         print("\nEntry not updated.")
-                        input("\nPress Enter to return to the menu.")
+                        while not menu_confirmed:
+                            time.sleep(0.1)
                         continue
 
                 files = audio.get_files_in_folder()
                 if not files:
                     print("\nNo audio files found in the directory.")
-                    input("\nPress Enter to return to the menu.")
+                    while not menu_confirmed:
+                        time.sleep(0.1)
                     continue
 
                 print("\nAvailable audios:")
@@ -225,7 +241,8 @@ def main():
             except Exception as e:
                 print(f"\nAn error occurred: {str(e)}")
             finally:
-                input("\nPress Enter to return to the menu.")
+                while not menu_confirmed:
+                    time.sleep(0.1)
 
         elif current_selection == 2:
             files = audio.get_files_in_folder()
@@ -236,12 +253,11 @@ def main():
                     print(f"{i}. {file}")
             else:
                 print("No audios found in the directory.")
-            input("\nPress Enter to return to the menu.")
+            while not menu_confirmed:
+                time.sleep(0.1)
 
         elif current_selection == 3:
             print("Exiting...")
             break
 
-if __name__ == "__main__":
-    main()
 
