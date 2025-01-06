@@ -135,18 +135,6 @@ menu_options = ["View currently playing", "Add or update audio", "List audios in
 current_selection = 0
 menu_confirmed = False
 
-# Global variables for overwrite confirmation
-overwrite_options = ["Yes", "No"]
-overwrite_selection = 0
-overwrite_confirmed = False
-
-# Global variables for selecting audio
-audio_selection = 0
-audio_confirmed = False
-
-audio = Audio()
-files = audio.get_files_in_folder()
-
 def on_up_pressed():
     global current_selection
     current_selection = (current_selection - 1) % len(menu_options)
@@ -161,46 +149,9 @@ def on_confirm_pressed():
     global menu_confirmed
     menu_confirmed = True
 
-def on_up_pressed_overwrite():
-    global overwrite_selection
-    overwrite_selection = (overwrite_selection - 1) % len(overwrite_options)
-    display_overwrite_menu()
-
-def on_down_pressed_overwrite():
-    global overwrite_selection
-    overwrite_selection = (overwrite_selection + 1) % len(overwrite_options)
-    display_overwrite_menu()
-
-def on_confirm_pressed_overwrite():
-    global overwrite_confirmed
-    overwrite_confirmed = True
-
-def on_up_pressed_audio():
-    global audio_selection
-    audio_selection = (audio_selection - 1) % len(files)
-    display_audio_menu(files)
-
-def on_down_pressed_audio():
-    global audio_selection
-    audio_selection = (audio_selection + 1) % len(files)
-    display_audio_menu(files)
-
-def on_confirm_pressed_audio():
-    global audio_confirmed
-    audio_confirmed = True
-
 up.when_pressed = on_up_pressed
 down.when_pressed = on_down_pressed
 confirm.when_pressed = on_confirm_pressed
-
-# Assign the buttons to overwrite and audio selection
-up.when_pressed = on_up_pressed_overwrite
-down.when_pressed = on_down_pressed_overwrite
-confirm.when_pressed = on_confirm_pressed_overwrite
-
-up.when_pressed = on_up_pressed_audio
-down.when_pressed = on_down_pressed_audio
-confirm.when_pressed = on_confirm_pressed_audio
 
 def display_menu():
     os.system('clear')
@@ -211,26 +162,9 @@ def display_menu():
         else:
             print(f"  {option}")
 
-def display_overwrite_menu():
-    os.system('clear')
-    print("=== Overwrite Confirmation ===")
-    for i, option in enumerate(overwrite_options):
-        if i == overwrite_selection:
-            print(f"> {option} <")
-        else:
-            print(f"  {option}")
-
-def display_audio_menu(files):
-    os.system('clear')
-    print("\n=== Available Audios ===")
-    for i, file in enumerate(files):
-        if i == audio_selection:
-            print(f"> {file} <")
-        else:
-            print(f"  {file}")
-
 def main():
-    global menu_confirmed, overwrite_confirmed, audio_confirmed
+    global menu_confirmed
+    audio = Audio()
     player_thread = th.Thread(target=audio.start_player, daemon=True)
     player_thread.start()
     reader = SimpleMFRC522()
@@ -274,16 +208,13 @@ def main():
                 existing = audio.session.query(RFIDAudio).filter_by(id=id).first()
                 if existing:
                     print(f"\nRFID ID {id} already exists with file: {existing.file}.")
-                    print("Navigate using buttons and confirm overwrite.")
-                    overwrite_confirmed = False
-                    while not overwrite_confirmed:
-                        time.sleep(0.1)
-                    
-                    if overwrite_selection == 0:  # Yes
-                        print(f"\nOverwriting with new file for ID {id}.")
-                    else:  # No
+                    overwrite = input("Do you want to overwrite this entry? (yes/no): ").strip().lower()
+
+                    if overwrite != "yes":
                         print("\nEntry not updated.")
                         menu_confirmed = False
+                        while not menu_confirmed:
+                            time.sleep(0.1)
                         continue
 
                 files = audio.get_files_in_folder()
@@ -298,21 +229,23 @@ def main():
                 for i, file in enumerate(files, 1):
                     print(f"{i}. {file}")
 
-                # Wait for button confirmation to select the audio
-                audio_confirmed = False
-                while not audio_confirmed:
-                    time.sleep(0.1)
-
-                selected_audio = files[audio_selection]
-                audio.add_file_to_db(str(id), selected_audio)
-                print(f"\nSuccessfully associated '{selected_audio}' with RFID ID {id}.")
-
+                try:
+                    choice = int(input("\nEnter the number of the audio to associate with the RFID: ").strip())
+                    if 1 <= choice <= len(files):
+                        file_path = files[choice - 1]
+                        audio.add_file_to_db(str(id), file_path)
+                        print(f"\nSuccessfully associated '{file_path}' with RFID ID {id}.")
+                    else:
+                        print("\nInvalid choice. Please select a valid number.")
+                except ValueError:
+                    print("\nInvalid input. Please enter a number.")
             except Exception as e:
                 print(f"\nAn error occurred: {str(e)}")
             finally:
                 menu_confirmed = False
                 while not menu_confirmed:
                     time.sleep(0.1)
+                continue
 
         elif current_selection == 2:
             files = audio.get_files_in_folder()
@@ -339,3 +272,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
