@@ -7,8 +7,7 @@ from sqlalchemy.orm import sessionmaker
 import time
 import os
 from threading import Lock, Event
-import select
-import sys
+from gpiozero import Button
 
 Base = declarative_base()
 DATABASE_URL = "sqlite:///rfid_audio.db"
@@ -126,39 +125,62 @@ class Audio:
         pg.mixer.quit()
         self.session.close() 
 
+up = Button(24, bounce_time=0.1)
+down = Button(23, bounce_time=0.1)
+confirm = Button(22, bounce_time=0.1)
+
+menu_options = ["View currently playing", "Add or update audio", "List audios in directory", "Exit"]
+current_selection = 0
+menu_confirmed = False
+
+def on_up_pressed():
+    global current_selection
+    current_selection = (current_selection - 1) % len(menu_options)
+    display_menu()
+
+def on_down_pressed():
+    global current_selection
+    current_selection = (current_selection + 1) % len(menu_options)
+    display_menu()
+
+def on_confirm_pressed():
+    global menu_confirmed
+    menu_confirmed = True
+
+up.when_pressed = on_up_pressed
+down.when_pressed = on_down_pressed
+confirm.when_pressed = on_confirm_pressed
+
+def display_menu():
+    os.system('clear')
+    print("=== RFID Audio Player Menu ===")
+    for i, option in enumerate(menu_options):
+        if i == current_selection:
+            print(f"> {option} <")
+        else:
+            print(f"  {option}")
+
 def main():
+    global menu_confirmed
     audio = Audio()
     player_thread = th.Thread(target=audio.start_player, daemon=True)
     player_thread.start()
     reader = SimpleMFRC522()
 
     while True:
-        os.system('clear')
-        print("=== RFID Audio Player Menu ===")
-        print("1. View currently playing")
-        print("2. Add or update audio")
-        print("3. List audios in directory")
-        print("4. Exit")
-        choice = input("> ").strip()
+        display_menu()
+        menu_confirmed = False
 
-        if choice == "1":
-            print("\nCurrently Playing (press Enter to return to the menu):")
-            try:
-                while True:
-                    current = audio.get_current_audio()
-                    os.system('clear')
-                    print("\n=== Currently Playing ===")
-                    print(f"audio: {current}" if current else "No audio is playing.")
-                    print("\n(Press Enter to return to the menu.)")
-                    time.sleep(0.5)
+        while not menu_confirmed:
+            time.sleep(0.1)
 
-                    if select.select([sys.stdin], [], [], 0.0)[0]:
-                        break
-            except KeyboardInterrupt:
-                pass
-            input("\nReturning to menu. Press Enter.")
+        if current_selection == 0:
+            current = audio.get_current_audio()
+            os.system('clear')
+            print(f"\nCurrently Playing: {current if current else 'No audio is playing.'}")
+            input("\nPress Enter to return to the menu.")
 
-        elif choice == "2":
+        elif current_selection == 1:
             print("\n=== Current Database Entries ===")
             entries = audio.session.query(RFIDAudio).all()
             if entries:
@@ -205,28 +227,21 @@ def main():
             finally:
                 input("\nPress Enter to return to the menu.")
 
-        elif choice == "3":
+        elif current_selection == 2:
             files = audio.get_files_in_folder()
+            os.system('clear')
             if files:
-                print("\naudios in Directory:")
+                print("Audios in Directory:")
                 for i, file in enumerate(files, 1):
-                    record = audio.session.query(RFIDAudio).filter_by(file=file).first()
-                    if record:
-                        print(f"{i}. {file} -> {record.id}")
-                    else:
-                        print(f"{i}. {file}")
+                    print(f"{i}. {file}")
             else:
-                print("\nNo audios found in the directory.")
-                print("\nCheck if the designated USB is plugged in and mounted.")
+                print("No audios found in the directory.")
             input("\nPress Enter to return to the menu.")
 
-        elif choice == "4":
+        elif current_selection == 3:
             print("Exiting...")
             break
-        else:
-            print("\nInvalid choice. Please try again.")
-            input("\nPress Enter to return to the menu.")   
-  
 
 if __name__ == "__main__":
     main()
+
