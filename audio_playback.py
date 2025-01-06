@@ -7,6 +7,8 @@ from sqlalchemy.orm import sessionmaker
 import time
 import os
 from threading import Lock, Event
+import select
+import sys
 
 Base = declarative_base()
 DATABASE_URL = "sqlite:///rfid_audio.db"
@@ -134,15 +136,28 @@ def main():
         os.system('clear')
         print("=== RFID Audio Player Menu ===")
         print("1. View currently playing")
-        print("2. Add or update song")
-        print("3. List songs in directory")
+        print("2. Add or update audio")
+        print("3. List audios in directory")
         print("4. Exit")
         choice = input("> ").strip()
 
         if choice == "1":
-            current = audio.get_current_audio()
-            print(f"\nCurrently Playing: {current}" if current else "\nNo song is playing.")
-            input("\nPress Enter to return to the menu.")
+            print("\nCurrently Playing (press Enter to return to the menu):")
+            try:
+                while True:
+                    current = audio.get_current_audio()
+                    os.system('clear')
+                    print("\n=== Currently Playing ===")
+                    print(f"audio: {current}" if current else "No audio is playing.")
+                    print("\n(Press Enter to return to the menu.)")
+                    time.sleep(0.5)
+
+                    if select.select([sys.stdin], [], [], 0.0)[0]:
+                        break
+            except KeyboardInterrupt:
+                pass
+            input("\nReturning to menu. Press Enter.")
+
         elif choice == "2":
             print("\n=== Current Database Entries ===")
             entries = audio.session.query(RFIDAudio).all()
@@ -171,12 +186,12 @@ def main():
                     input("\nPress Enter to return to the menu.")
                     continue
 
-                print("\nAvailable Songs:")
+                print("\nAvailable audios:")
                 for i, file in enumerate(files, 1):
                     print(f"{i}. {file}")
 
                 try:
-                    choice = int(input("\nEnter the number of the song to associate with the RFID: ").strip())
+                    choice = int(input("\nEnter the number of the audio to associate with the RFID: ").strip())
                     if 1 <= choice <= len(files):
                         file_path = files[choice - 1]
                         audio.add_file_to_db(str(id), file_path)
@@ -189,10 +204,11 @@ def main():
                 print(f"\nAn error occurred: {str(e)}")
             finally:
                 input("\nPress Enter to return to the menu.")
+
         elif choice == "3":
             files = audio.get_files_in_folder()
             if files:
-                print("\nSongs in Directory:")
+                print("\naudios in Directory:")
                 for i, file in enumerate(files, 1):
                     record = audio.session.query(RFIDAudio).filter_by(file=file).first()
                     if record:
@@ -200,9 +216,10 @@ def main():
                     else:
                         print(f"{i}. {file}")
             else:
-                print("\nNo songs found in the directory.")
+                print("\nNo audios found in the directory.")
                 print("\nCheck if the designated USB is plugged in and mounted.")
             input("\nPress Enter to return to the menu.")
+
         elif choice == "4":
             print("Exiting...")
             break
