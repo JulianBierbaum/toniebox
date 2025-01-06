@@ -186,9 +186,6 @@ def main():
                     print(f"audio: {current}" if current else "No audio is playing.")
                     print("\n(Press Confirm button to return to the menu.)")
                     time.sleep(0.5)
-
-                    if confirm.is_pressed:
-                        break
             except menu_confirmed:
                 pass
 
