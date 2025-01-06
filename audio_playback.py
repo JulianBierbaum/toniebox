@@ -82,17 +82,27 @@ class Audio:
 
     def start_player(self):
         reader = SimpleMFRC522()
-        current_id = None
+        current_id = 0
+        none_counter = 0
         
         while True:
             id, text = reader.read_no_block()
-            if id and id != current_id:
-                current_id = id
-                self.play(str(id))
-            elif not id:
+            if id is not None:
+                if id != current_id:
+                    current_id = id
+                    self.play(str(id))
+                    time.sleep(2)
+            if id is None:
+                none_counter += 1
+            else:
+                none_counter = 0
+            
+            if none_counter >= 2:
                 self.stop()
-                current_id = None
-            time.sleep(0.5)
+                none_counter = 0
+                current_id = 0
+            
+            time.sleep(0.1)
 
     def __del__(self):
         pg.mixer.quit()
