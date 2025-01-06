@@ -194,7 +194,11 @@ def main():
             if files:
                 print("\nSongs in Directory:")
                 for i, file in enumerate(files, 1):
-                    print(f"{i}. {file}")
+                    record = audio.session.query(RFIDAudio).filter_by(file=file).first()
+                    if record:
+                        print(f"{i}. {file} -> {record.id}")
+                    else:
+                        print(f"{i}. {file}")
             else:
                 print("\nNo songs found in the directory.")
                 print("\nCheck if the designated USB is plugged in and mounted.")
