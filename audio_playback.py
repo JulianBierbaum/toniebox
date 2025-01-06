@@ -134,7 +134,7 @@ def main():
         os.system('clear')
         print("=== RFID Audio Player Menu ===")
         print("1. View currently playing")
-        print("2. Add new song")
+        print("2. Add or update song")
         print("3. List songs in directory")
         print("4. Exit")
         choice = input("> ").strip()
@@ -144,39 +144,60 @@ def main():
             print(f"\nCurrently Playing: {current}" if current else "\nNo song is playing.")
             input("\nPress Enter to return to the menu.")
         elif choice == "2":
-            session = audio.session
+            print("\n=== Current Database Entries ===")
+            entries = audio.session.query(RFIDAudio).all()
+            if entries:
+                for entry in entries:
+                    print(f"ID: {entry.id}, File: {entry.file}")
+            print("\n")
+
             try:
                 print("Hold RFID chip to reader.")
                 id, text = reader.read()
-                print(id)
-                
-                existing = session.query(RFIDAudio).filter_by(id=id).first()
+                print(f"RFID ID: {id}")
+
+                existing = audio.session.query(RFIDAudio).filter_by(id=id).first()
                 if existing:
-                    print("\nRFID ID already exists in the database.")
-                    input("\nPress Enter to return to the menu.")
-                    return
+                    print(f"\nRFID ID {id} already exists with file: {existing.file}.")
+                    overwrite = input("Do you want to overwrite this entry? (yes/no): ").strip().lower()
+                    if overwrite != "yes":
+                        print("\nEntry not updated.")
+                        input("\nPress Enter to return to the menu.")
+                        continue
 
-                file_path = input("Enter audio file name (e.g., song.mp3): ").strip()
-                if not file_path:
-                    print("\nAudio file name cannot be empty.")
+                files = audio.get_files_in_folder()
+                if not files:
+                    print("\nNo audio files found in the directory.")
                     input("\nPress Enter to return to the menu.")
-                    return
+                    continue
 
-                if not os.path.exists(f"/media/pi/{file_path}"):
-                    print("\nAudio file not found. Please ensure the file is in the correct directory.")
-                    input("\nPress Enter to return to the menu.")
-                    return
+                print("\nAvailable Songs:")
+                for i, file in enumerate(files, 1):
+                    print(f"{i}. {file}")
 
-                new_record = RFIDAudio(id=id, file=file_path)
-                session.add(new_record)
-                session.commit()
-                print("\nNew song added successfully!")
+                try:
+                    choice = int(input("\nEnter the number of the song to associate with the RFID: ").strip())
+                    if 1 <= choice <= len(files):
+                        file_path = files[choice - 1]
+                        audio.add_file_to_db(str(id), file_path)
+                        print(f"\nSuccessfully associated '{file_path}' with RFID ID {id}.")
+                    else:
+                        print("\nInvalid choice. Please select a valid number.")
+                except ValueError:
+                    print("\nInvalid input. Please enter a number.")
             except Exception as e:
                 print(f"\nAn error occurred: {str(e)}")
             finally:
                 input("\nPress Enter to return to the menu.")
         elif choice == "3":
-            print(audio.get_files_in_folder())
+            files = audio.get_files_in_folder()
+            if files:
+                print("\nSongs in Directory:")
+                for i, file in enumerate(files, 1):
+                    print(f"{i}. {file}")
+            else:
+                print("\nNo songs found in the directory.")
+                print("\nCheck if the designated USB is plugged in and mounted.")
             input("\nPress Enter to return to the menu.")
         elif choice == "4":
             print("Exiting...")
@@ -184,6 +205,7 @@ def main():
         else:
             print("\nInvalid choice. Please try again.")
             input("\nPress Enter to return to the menu.")   
+  
 
 if __name__ == "__main__":
     main()
