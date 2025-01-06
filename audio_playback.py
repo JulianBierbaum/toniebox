@@ -122,9 +122,12 @@ class Audio:
 
     def __del__(self):
         pg.mixer.quit()
-        self.session.close()
+        self.session.close() 
 
-def menu(audio):
+def main():
+    audio = Audio()
+    player_thread = th.Thread(target=audio.start_player, daemon=True)
+    player_thread.start()
     reader = SimpleMFRC522()
 
     while True:
@@ -133,7 +136,7 @@ def menu(audio):
         print("1. View currently playing")
         print("2. Add new song")
         print("3. List songs in directory")
-        print("3. Exit")
+        print("4. Exit")
         choice = input("> ").strip()
 
         if choice == "1":
@@ -146,10 +149,6 @@ def menu(audio):
                 print("Hold RFID chip to reader.")
                 id, text = reader.read()
                 print(id)
-                if not id:
-                    print("\nRFID ID cannot be empty.")
-                    input("\nPress Enter to return to the menu.")
-                    return
                 
                 existing = session.query(RFIDAudio).filter_by(id=id).first()
                 if existing:
@@ -177,18 +176,13 @@ def menu(audio):
             finally:
                 input("\nPress Enter to return to the menu.")
         elif choice == "3":
+            print(audio.get_files_in_folder())
+        elif choice == "4":
             print("Exiting...")
             break
         else:
             print("\nInvalid choice. Please try again.")
-            input("\nPress Enter to return to the menu.")    
-
-def main():
-    audio = Audio()
-    player_thread = th.Thread(target=audio.start_player, daemon=True)
-    player_thread.start()
-
-    menu(audio)
+            input("\nPress Enter to return to the menu.")   
 
 if __name__ == "__main__":
     main()
