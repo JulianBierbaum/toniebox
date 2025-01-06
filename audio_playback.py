@@ -74,7 +74,23 @@ class Audio:
 
     def get_file(self, file_id):
         record = self.session.query(RFIDAudio).filter_by(id=file_id).first()
-        return record.file if record else None
+        if record:
+            return record.file
+        else:
+            return None
+    
+    def get_files_in_folder(self):
+        folder_path = "/media/pi"
+        return [file for file in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, file))]
+
+    def add_file_to_db(self, file_id, file_name):
+        record = self.session.query(RFIDAudio).filter_by(id=file_id).first()
+        if record:
+            record.file = file_name
+        else:
+            record = RFIDAudio(id=file_id, file=file_name)
+            self.session.add(record)
+        self.session.commit()
 
     def get_current_audio(self):
         with self.current_audio_lock:
@@ -109,6 +125,8 @@ class Audio:
         self.session.close()
 
 def menu(audio):
+    reader = SimpleMFRC522()
+
     while True:
         os.system('clear')
         print("=== RFID Audio Player Menu ===")
@@ -123,48 +141,47 @@ def menu(audio):
             print(f"\nCurrently Playing: {current}" if current else "\nNo song is playing.")
             input("\nPress Enter to return to the menu.")
         elif choice == "2":
-            add_song_to_db(audio)
+            session = audio.session
+            try:
+                print("Hold RFID chip to reader.")
+                id, text = reader.read()
+                print(id)
+                if not id:
+                    print("\nRFID ID cannot be empty.")
+                    input("\nPress Enter to return to the menu.")
+                    return
+                
+                existing = session.query(RFIDAudio).filter_by(id=id).first()
+                if existing:
+                    print("\nRFID ID already exists in the database.")
+                    input("\nPress Enter to return to the menu.")
+                    return
+
+                file_path = input("Enter audio file name (e.g., song.mp3): ").strip()
+                if not file_path:
+                    print("\nAudio file name cannot be empty.")
+                    input("\nPress Enter to return to the menu.")
+                    return
+
+                if not os.path.exists(f"/media/pi/{file_path}"):
+                    print("\nAudio file not found. Please ensure the file is in the correct directory.")
+                    input("\nPress Enter to return to the menu.")
+                    return
+
+                new_record = RFIDAudio(id=id, file=file_path)
+                session.add(new_record)
+                session.commit()
+                print("\nNew song added successfully!")
+            except Exception as e:
+                print(f"\nAn error occurred: {str(e)}")
+            finally:
+                input("\nPress Enter to return to the menu.")
         elif choice == "3":
             print("Exiting...")
             break
         else:
             print("\nInvalid choice. Please try again.")
-            input("\nPress Enter to return to the menu.")
-
-def add_song_to_db(audio):
-    session = audio.session
-    try:
-        rfid_id = input("Enter RFID ID (unique): ").strip()
-        if not rfid_id:
-            print("\nRFID ID cannot be empty.")
-            input("\nPress Enter to return to the menu.")
-            return
-        
-        existing = session.query(RFIDAudio).filter_by(id=rfid_id).first()
-        if existing:
-            print("\nRFID ID already exists in the database.")
-            input("\nPress Enter to return to the menu.")
-            return
-
-        file_path = input("Enter audio file name (e.g., song.mp3): ").strip()
-        if not file_path:
-            print("\nAudio file name cannot be empty.")
-            input("\nPress Enter to return to the menu.")
-            return
-
-        if not os.path.exists(f"/media/pi/{file_path}"):
-            print("\nAudio file not found. Please ensure the file is in the correct directory.")
-            input("\nPress Enter to return to the menu.")
-            return
-
-        new_record = RFIDAudio(id=rfid_id, file=file_path)
-        session.add(new_record)
-        session.commit()
-        print("\nNew song added successfully!")
-    except Exception as e:
-        print(f"\nAn error occurred: {str(e)}")
-    finally:
-        input("\nPress Enter to return to the menu.")
+            input("\nPress Enter to return to the menu.")    
 
 def main():
     audio = Audio()
