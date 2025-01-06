@@ -225,7 +225,11 @@ def main():
 
                 print("\nAvailable audios:")
                 for i, file in enumerate(files, 1):
-                    print(f"{i}. {file}")
+                    record = audio.session.query(RFIDAudio).filter_by(file=file).first()
+                    if record:
+                        print(f"{i}. {file} -> {record.id}")
+                    else:
+                        print(f"{i}. {file}")
 
                 try:
                     choice = int(input("\nEnter the number of the audio to associate with the RFID: ").strip())
