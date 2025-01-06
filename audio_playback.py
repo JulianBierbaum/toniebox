@@ -6,10 +6,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import time
 import os
-
 from threading import Lock
 
-# Database setup
 Base = declarative_base()
 DATABASE_URL = "sqlite:///rfid_audio.db"
 
@@ -92,7 +90,7 @@ class Audio:
 
 def display_current_audio():
     while True:
-        os.system('clear')  # For Windows, use 'cls'
+        os.system('clear')
         with current_audio_lock:
             global CURRENT_AUDIO
             print("=== RFID Audio Player ===")
@@ -100,7 +98,7 @@ def display_current_audio():
                 print(f"Currently Playing: {CURRENT_AUDIO}")
             else:
                 print("No song is playing.")
-        time.sleep(1)
+        time.sleep(0.1)
 
 def main():
     audio = Audio()
