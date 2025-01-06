@@ -177,8 +177,7 @@ def main():
             time.sleep(0.1)
 
         if current_selection == 0:
-            
-            print("\nCurrently Playing:")
+            print("\n=== Currently Playing ===")
             try:
                 while True:
                     current = audio.get_current_audio()
@@ -212,6 +211,7 @@ def main():
                     overwrite = input("Do you want to overwrite this entry? (yes/no): ").strip().lower()
                     if overwrite != "yes":
                         print("\nEntry not updated.")
+                        menu_confirmed = False
                         while not menu_confirmed:
                             time.sleep(0.1)
                         continue
@@ -219,6 +219,7 @@ def main():
                 files = audio.get_files_in_folder()
                 if not files:
                     print("\nNo audio files found in the directory.")
+                    menu_confirmed = False
                     while not menu_confirmed:
                         time.sleep(0.1)
                     continue
@@ -240,6 +241,7 @@ def main():
             except Exception as e:
                 print(f"\nAn error occurred: {str(e)}")
             finally:
+                menu_confirmed = False
                 while not menu_confirmed:
                     time.sleep(0.1)
                 continue
