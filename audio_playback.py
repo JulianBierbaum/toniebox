@@ -1,15 +1,14 @@
 import pygame as pg
 import threading as th
 from mfrc522 import SimpleMFRC522
-from sqlalchemy import create_engine, Column, String
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine, Column, String, orm
 from sqlalchemy.orm import sessionmaker
 import time
 import os
 from threading import Lock, Event
 from gpiozero import Button
 
-Base = declarative_base()
+Base = orm.declarative_base()
 DATABASE_URL = "sqlite:///rfid_audio.db"
 
 class RFIDAudio(Base):
