@@ -177,6 +177,7 @@ def main():
                 input("\nPress Enter to return to the menu.")
         elif choice == "3":
             print(audio.get_files_in_folder())
+            input("\nPress Enter to return to the menu.")
         elif choice == "4":
             print("Exiting...")
             break
