@@ -184,10 +184,10 @@ def main():
                     os.system('clear')
                     print("\n=== Currently Playing ===")
                     print(f"audio: {current}" if current else "No audio is playing.")
-                    print("\n(Press Enter to return to the menu.)")
+                    print("\n(Press Confirm button to return to the menu.)")
                     time.sleep(0.5)
 
-                    if select.select([sys.stdin], [], [], 0.0)[0]:
+                    if confirm.is_pressed:
                         break
             except KeyboardInterrupt:
                 pass
