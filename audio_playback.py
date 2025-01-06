@@ -225,11 +225,7 @@ def main():
 
                 print("\nAvailable audios:")
                 for i, file in enumerate(files, 1):
-                    record = audio.session.query(RFIDAudio).filter_by(file=file).first()
-                    if record:
-                        print(f"{i}. {file} -> {record.id}")
-                    else:
-                        print(f"{i}. {file}")
+                    print(f"{i}. {file}")
 
                 try:
                     choice = int(input("\nEnter the number of the audio to associate with the RFID: ").strip())
@@ -251,12 +247,18 @@ def main():
         elif current_selection == 2:
             files = audio.get_files_in_folder()
             os.system('clear')
+            print("\n=== Audios in Directory ===")
             if files:
-                print("Audios in Directory:")
                 for i, file in enumerate(files, 1):
-                    print(f"{i}. {file}")
+                    record = audio.session.query(RFIDAudio).filter_by(file=file).first()
+                    if record:
+                        print(f"{i}. {file} -> {record.id}")
+                    else:
+                        print(f"{i}. {file}")
             else:
                 print("No audios found in the directory.")
+
+            menu_confirmed = False
             while not menu_confirmed:
                 time.sleep(0.1)
             continue
