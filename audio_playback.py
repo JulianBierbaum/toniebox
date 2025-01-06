@@ -189,7 +189,7 @@ def main():
 
                     if confirm.is_pressed:
                         break
-            except KeyboardInterrupt:
+            except menu_confirmed:
                 pass
 
         elif current_selection == 1:
