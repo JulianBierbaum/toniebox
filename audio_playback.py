@@ -1,14 +1,15 @@
 import pygame as pg
 import threading as th
 from mfrc522 import SimpleMFRC522
-from sqlalchemy import create_engine, Column, String, orm
+from sqlalchemy import create_engine, Column, String
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import time
 import os
 from threading import Lock, Event
 from gpiozero import Button
 
-Base = orm.declarative_base()
+Base = declarative_base()
 DATABASE_URL = "sqlite:///rfid_audio.db"
 
 class RFIDAudio(Base):
@@ -130,6 +131,7 @@ confirm = Button(22, bounce_time=0.1)
 
 menu_options = ["View currently playing", "Add or update audio", "List audios in directory", "Exit"]
 current_selection = 0
+menu_confirmed = False
 
 def on_up_pressed():
     global current_selection
@@ -142,31 +144,12 @@ def on_down_pressed():
     display_menu()
 
 def on_confirm_pressed():
-    global current_selection
-    if current_selection == 0:  # View currently playing
-        display_current_audio()
-    elif current_selection == 1:  # Add or update audio
-        add_update_audio()
-    elif current_selection == 2:  # List audios in directory
-        list_audios()
-    elif current_selection == 3:  # Exit
-        print("Exiting...")
-        exit()
+    global menu_confirmed
+    menu_confirmed = True
 
 up.when_pressed = on_up_pressed
 down.when_pressed = on_down_pressed
 confirm.when_pressed = on_confirm_pressed
-
-def display_current_audio():
-    os.system('clear')
-    print("\n=== Currently Playing ===")
-    current = audio.get_current_audio()
-    print(f"Audio: {current if current else 'No audio is playing.'}")
-    print("\nPress the Confirm button to return to the menu.")
-    while True:
-        if confirm.is_pressed:
-            break
-        time.sleep(0.1)
 
 def display_menu():
     os.system('clear')
@@ -177,72 +160,88 @@ def display_menu():
         else:
             print(f"  {option}")
 
-def add_update_audio():
-    reader = SimpleMFRC522()
-
-    print("\n=== Current Database Entries ===")
-    entries = audio.session.query(RFIDAudio).all()
-    if entries:
-        for entry in entries:
-            print(f"ID: {entry.id}, File: {entry.file}")
-    print("\n")
-
-    try:
-        print("Hold RFID chip to reader.")
-        id, text = reader.read()
-        print(f"RFID ID: {id}")
-
-        existing = audio.session.query(RFIDAudio).filter_by(id=id).first()
-        if existing:
-            print(f"\nRFID ID {id} already exists with file: {existing.file}.")
-            overwrite = input("Do you want to overwrite this entry? (yes/no): ").strip().lower()
-            if overwrite != "yes":
-                print("\nEntry not updated.")
-                return
-
-        files = audio.get_files_in_folder()
-        if not files:
-            print("\nNo audio files found in the directory.")
-            return
-
-        print("\nAvailable audios:")
-        for i, file in enumerate(files, 1):
-            print(f"{i}. {file}")
-
-        try:
-            choice = int(input("\nEnter the number of the audio to associate with the RFID: ").strip())
-            if 1 <= choice <= len(files):
-                file_path = files[choice - 1]
-                audio.add_file_to_db(str(id), file_path)
-                print(f"\nSuccessfully associated '{file_path}' with RFID ID {id}.")
-            else:
-                print("\nInvalid choice. Please select a valid number.")
-        except ValueError:
-            print("\nInvalid input. Please enter a number.")
-    except Exception as e:
-        print(f"\nAn error occurred: {str(e)}")
-
-def list_audios():
-    files = audio.get_files_in_folder()
-    os.system('clear')
-    if files:
-        print("Audios in Directory:")
-        for i, file in enumerate(files, 1):
-            print(f"{i}. {file}")
-    else:
-        print("No audios found in the directory.")
-    while not confirm.is_pressed:
-        time.sleep(0.1)
-
 def main():
-    global audio
+    global menu_confirmed
     audio = Audio()
     player_thread = th.Thread(target=audio.start_player, daemon=True)
     player_thread.start()
+    reader = SimpleMFRC522()
 
     while True:
         display_menu()
-        time.sleep(0.1)
+        menu_confirmed = False
+
+        while not menu_confirmed:
+            time.sleep(0.1)
+
+        if current_selection == 0:
+            current = audio.get_current_audio()
+            os.system('clear')
+            print(f"\nCurrently Playing: {current if current else 'No audio is playing.'}")
+            input("\nPress Enter to return to the menu.")
+
+        elif current_selection == 1:
+            print("\n=== Current Database Entries ===")
+            entries = audio.session.query(RFIDAudio).all()
+            if entries:
+                for entry in entries:
+                    print(f"ID: {entry.id}, File: {entry.file}")
+            print("\n")
+
+            try:
+                print("Hold RFID chip to reader.")
+                id, text = reader.read()
+                print(f"RFID ID: {id}")
+
+                existing = audio.session.query(RFIDAudio).filter_by(id=id).first()
+                if existing:
+                    print(f"\nRFID ID {id} already exists with file: {existing.file}.")
+                    overwrite = input("Do you want to overwrite this entry? (yes/no): ").strip().lower()
+                    if overwrite != "yes":
+                        print("\nEntry not updated.")
+                        input("\nPress Enter to return to the menu.")
+                        continue
+
+                files = audio.get_files_in_folder()
+                if not files:
+                    print("\nNo audio files found in the directory.")
+                    input("\nPress Enter to return to the menu.")
+                    continue
+
+                print("\nAvailable audios:")
+                for i, file in enumerate(files, 1):
+                    print(f"{i}. {file}")
+
+                try:
+                    choice = int(input("\nEnter the number of the audio to associate with the RFID: ").strip())
+                    if 1 <= choice <= len(files):
+                        file_path = files[choice - 1]
+                        audio.add_file_to_db(str(id), file_path)
+                        print(f"\nSuccessfully associated '{file_path}' with RFID ID {id}.")
+                    else:
+                        print("\nInvalid choice. Please select a valid number.")
+                except ValueError:
+                    print("\nInvalid input. Please enter a number.")
+            except Exception as e:
+                print(f"\nAn error occurred: {str(e)}")
+            finally:
+                input("\nPress Enter to return to the menu.")
+
+        elif current_selection == 2:
+            files = audio.get_files_in_folder()
+            os.system('clear')
+            if files:
+                print("Audios in Directory:")
+                for i, file in enumerate(files, 1):
+                    print(f"{i}. {file}")
+            else:
+                print("No audios found in the directory.")
+            input("\nPress Enter to return to the menu.")
+
+        elif current_selection == 3:
+            print("Exiting...")
+            break
 
 if __name__ == "__main__":
     main()
+
