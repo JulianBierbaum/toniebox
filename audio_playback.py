@@ -8,6 +8,8 @@ import time
 import os
 from threading import Lock, Event
 from gpiozero import Button
+import select
+import sys
 
 Base = declarative_base()
 DATABASE_URL = "sqlite:///rfid_audio.db"
@@ -175,10 +177,21 @@ def main():
             time.sleep(0.1)
 
         if current_selection == 0:
-            current = audio.get_current_audio()
-            os.system('clear')
-            print(f"\nCurrently Playing: {current if current else 'No audio is playing.'}")
-            input("\nPress Enter to return to the menu.")
+            
+            print("\nCurrently Playing (press Enter to return to the menu):")
+            try:
+                while True:
+                    current = audio.get_current_audio()
+                    os.system('clear')
+                    print("\n=== Currently Playing ===")
+                    print(f"audio: {current}" if current else "No audio is playing.")
+                    print("\n(Press Enter to return to the menu.)")
+                    time.sleep(0.5)
+
+                    if select.select([sys.stdin], [], [], 0.0)[0]:
+                        break
+            except KeyboardInterrupt:
+                pass
 
         elif current_selection == 1:
             print("\n=== Current Database Entries ===")
