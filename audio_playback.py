@@ -36,7 +36,8 @@ class Audio:
     def play(self, file_id):
         audio_file = self.get_file(file_id)
         if not audio_file:
-            print(f"No audio file mapped for id: {file_id}")
+            with self.current_audio_lock:
+                self.current_audio = f"Unknown ID: {file_id}"
             return
 
         with self.current_audio_lock:
@@ -54,7 +55,6 @@ class Audio:
         try:
             pg.mixer.music.load(f"/media/pi/{audio_file}")
             pg.mixer.music.play()
-            print(f"Playing audio: {audio_file}")
             
             while pg.mixer.music.get_busy() and not self.playback_event.is_set():
                 pg.time.Clock().tick(10)
