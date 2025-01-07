@@ -8,8 +8,6 @@ import time
 import os
 from threading import Lock, Event
 from gpiozero import Button
-import select
-import sys
 
 Base = declarative_base()
 DATABASE_URL = "sqlite:///rfid_audio.db"
