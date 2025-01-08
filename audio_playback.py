@@ -210,8 +210,8 @@ def main():
                     print("\n(Press Confirm button to return to the menu.)")
                     time.sleep(0.5)
 
-                    while not option_confirmed:
-                        time.sleep(0.1)
+                    if option_confirmed:
+                        break
             except option_confirmed:
                 pass
 
