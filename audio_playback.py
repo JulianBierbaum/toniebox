@@ -200,6 +200,8 @@ def main():
             time.sleep(0.1)
 
         if menu_selection == 0:
+            option_confirmed = False
+
             print("\n=== Currently Playing ===")
             try:
                 while True:
