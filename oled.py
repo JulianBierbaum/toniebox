@@ -12,6 +12,7 @@ from luma.core.interface.serial import i2c
 from luma.core.render import canvas
 from luma.oled.device import sh1106
 from PIL import ImageFont
+from audio_playback import Audio
 
 # Database setup remains the same
 Base = declarative_base()
