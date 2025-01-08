@@ -179,7 +179,7 @@ class OLEDMenu:
 
     def display_file_menu(self, files):
         with canvas(self.device) as draw:
-            draw.text((0, 0), "Select File:", font=self.font, fill="white")
+            draw.text((0, 0), "Files:", font=self.font, fill="white")
             
             # Show 4 files at a time, with selection in the middle when possible
             visible_files = files[max(0, self.file_selection - 1):self.file_selection + 3]
@@ -335,7 +335,7 @@ def main():
                 time.sleep(2)
 
         elif oled_menu.menu_selection == 3:  # Exit
-            oled_menu.display_message("Goodbye!")
+            oled_menu.display_message("Exiting Program...")
             time.sleep(1)
             break
 
