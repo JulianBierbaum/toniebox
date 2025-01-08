@@ -281,7 +281,7 @@ def main():
             audio.reader_active = False
             
             try:
-                oled_menu.display_message("Hold RFID chip to reader\nPress any key to cancel")
+                oled_menu.display_message("Hold RFID chip to reader")
                 # Set up a cancellation flag
                 read_cancelled = False
                 
