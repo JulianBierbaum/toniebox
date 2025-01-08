@@ -210,8 +210,8 @@ def display_file_menu():
     print("=== File Selection ===")
     print("\nAvailable audios files: ")
 
-    for i, option in enumerate(yes_no_options):
-        if i == yes_no_selection:
+    for i, option in enumerate(file_options):
+        if i == file_selection:
             print(f"> {option}")
         else:
             print(f"  {option}")
