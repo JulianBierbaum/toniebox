@@ -281,8 +281,32 @@ def main():
             audio.reader_active = False
             
             try:
-                oled_menu.display_message("Hold RFID chip")
-                id, text = reader.read()
+                oled_menu.display_message("Hold RFID chip\nPress any key\nto cancel")
+                # Set up a cancellation flag
+                read_cancelled = False
+                
+                def cancel_read():
+                    nonlocal read_cancelled
+                    read_cancelled = True
+                
+                # Temporarily reassign button handlers for cancellation
+                oled_menu.up.when_pressed = cancel_read
+                oled_menu.down.when_pressed = cancel_read
+                oled_menu.confirm.when_pressed = cancel_read
+                
+                # Try to read RFID with timeout checks
+                id = None
+                while not read_cancelled and id is None:
+                    id, text = reader.read_no_block()
+                    time.sleep(0.1)
+                
+                # Restore original button handlers
+                oled_menu.up.when_pressed = oled_menu.on_up_pressed
+                oled_menu.down.when_pressed = oled_menu.on_down_pressed
+                oled_menu.confirm.when_pressed = oled_menu.on_confirm_pressed
+                
+                if read_cancelled or id is None:
+                    continue
                 
                 existing = audio.session.query(RFIDAudio).filter_by(id=str(id)).first()
                 if existing:
