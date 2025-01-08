@@ -303,9 +303,8 @@ def main():
                 up.when_pressed = on_up_pressed
                 down.when_pressed = on_down_pressed
 
-                file_path = files[file_selection - 1]
-                audio.add_file_to_db(str(id), file_path)
-                print(f"\nSuccessfully associated '{file_path}' with RFID ID {id}.")
+                audio.add_file_to_db(str(id), files[file_selection])
+                print(f"\nSuccessfully associated '{files[file_selection]}' with RFID ID {id}.")
 
             except Exception as e:
                 print(f"\nAn error occurred: {str(e)}")
