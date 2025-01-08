@@ -130,22 +130,36 @@ down = Button(23, bounce_time=0.05)
 confirm = Button(22, bounce_time=0.05)
 
 menu_options = ["View currently playing", "Add or update audio", "List audios in directory", "Exit"]
-current_selection = 0
-menu_confirmed = False
+menu_selection = 0
+
+yes_no_options = ["Yes", "No"]
+yes_no_selection = 0
+
+option_confirmed = False
 
 def on_up_pressed():
-    global current_selection
-    current_selection = (current_selection - 1) % len(menu_options)
+    global menu_selection
+    menu_selection = (menu_selection - 1) % len(menu_options)
     display_menu()
 
 def on_down_pressed():
-    global current_selection
-    current_selection = (current_selection + 1) % len(menu_options)
+    global menu_selection
+    menu_selection = (menu_selection + 1) % len(menu_options)
     display_menu()
 
+def on_yes_no_up_pressed():
+    global yes_no_selection
+    yes_no_selection = (yes_no_selection - 1) % len(yes_no_options)
+    display_yes_no_menu()
+
+def on_yes_no_down_pressed():
+    global yes_no_selection
+    yes_no_selection = (yes_no_selection + 1) % len(yes_no_options)
+    display_yes_no_menu()
+
 def on_confirm_pressed():
-    global menu_confirmed
-    menu_confirmed = True
+    global option_confirmed
+    option_confirmed = True
 
 up.when_pressed = on_up_pressed
 down.when_pressed = on_down_pressed
@@ -155,13 +169,24 @@ def display_menu():
     os.system('clear')
     print("=== RFID Audio Player Menu ===")
     for i, option in enumerate(menu_options):
-        if i == current_selection:
+        if i == menu_selection:
+            print(f"> {option}")
+        else:
+            print(f"  {option}")
+
+def display_yes_no_menu():
+    os.system('clear')
+    print("=== Overwrite Confirmation ===")
+    print("\nAn entry with this id is already in the database")
+    print("Do you want to overwrite this entry?")
+    for i, option in enumerate(yes_no_options):
+        if i == yes_no_selection:
             print(f"> {option}")
         else:
             print(f"  {option}")
 
 def main():
-    global menu_confirmed
+    global option_confirmed
     audio = Audio()
     player_thread = th.Thread(target=audio.start_player, daemon=True)
     player_thread.start()
@@ -169,12 +194,12 @@ def main():
 
     while True:
         display_menu()
-        menu_confirmed = False
+        option_confirmed = False
 
-        while not menu_confirmed:
+        while not option_confirmed:
             time.sleep(0.1)
 
-        if current_selection == 0:
+        if menu_selection == 0:
             print("\n=== Currently Playing ===")
             try:
                 while True:
@@ -187,10 +212,10 @@ def main():
 
                     if confirm.is_pressed:
                         break
-            except menu_confirmed:
+            except option_confirmed:
                 pass
 
-        elif current_selection == 1:
+        elif menu_selection == 1:
             print("\n=== Current Database Entries ===")
             entries = audio.session.query(RFIDAudio).all()
             if entries:
@@ -205,21 +230,32 @@ def main():
 
                 existing = audio.session.query(RFIDAudio).filter_by(id=id).first()
                 if existing:
-                    print(f"\nRFID ID {id} already exists with file: {existing.file}.")
-                    overwrite = input("Do you want to overwrite this entry? (yes/no): ").strip().lower()
+                    up.when_pressed = on_yes_no_up_pressed
+                    down.when_pressed = on_yes_no_down_pressed
 
-                    if overwrite != "yes":
+                    display_yes_no_menu()
+                    option_confirmed = False
+
+                    while not option_confirmed:
+                        time.sleep(0.1)
+                    
+                    up.when_pressed = on_up_pressed
+                    down.when_pressed = on_down_pressed
+                    confirm.when_pressed = on_confirm_pressed
+
+                    if yes_no_selection == 1:
                         print("\nEntry not updated.")
-                        menu_confirmed = False
-                        while not menu_confirmed:
+                        option_confirmed = False
+                        while not option_confirmed:
                             time.sleep(0.1)
                         continue
+
 
                 files = audio.get_files_in_folder()
                 if not files:
                     print("\nNo audio files found in the directory.")
-                    menu_confirmed = False
-                    while not menu_confirmed:
+                    option_confirmed = False
+                    while not option_confirmed:
                         time.sleep(0.1)
                     continue
 
@@ -240,12 +276,12 @@ def main():
             except Exception as e:
                 print(f"\nAn error occurred: {str(e)}")
             finally:
-                menu_confirmed = False
-                while not menu_confirmed:
+                option_confirmed = False
+                while not option_confirmed:
                     time.sleep(0.1)
                 continue
 
-        elif current_selection == 2:
+        elif menu_selection == 2:
             files = audio.get_files_in_folder()
             os.system('clear')
             print("\n=== Audios in Directory ===")
@@ -259,12 +295,12 @@ def main():
             else:
                 print("No audios found in the directory.")
 
-            menu_confirmed = False
-            while not menu_confirmed:
+            option_confirmed = False
+            while not option_confirmed:
                 time.sleep(0.1)
             continue
 
-        elif current_selection == 3:
+        elif menu_selection == 3:
             print("Exiting...")
             break
 
