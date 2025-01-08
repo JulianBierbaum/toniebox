@@ -130,6 +130,8 @@ class Audio:
         pg.mixer.quit()
         self.session.close() 
 
+audio = Audio()
+
 up = Button(24, bounce_time=0.05)
 down = Button(23, bounce_time=0.05)
 confirm = Button(22, bounce_time=0.05)
@@ -139,6 +141,9 @@ menu_selection = 0
 
 yes_no_options = ["Yes", "No"]
 yes_no_selection = 0
+
+file_options = audio.get_files_in_folder()
+file_selection = 0
 
 option_confirmed = False
 
@@ -161,6 +166,16 @@ def on_yes_no_down_pressed():
     global yes_no_selection
     yes_no_selection = (yes_no_selection + 1) % len(yes_no_options)
     display_yes_no_menu()
+
+def on_files_up_pressed():
+    global file_selection
+    file_selection = (file_selection - 1) % len(file_options)
+    display_file_menu()
+
+def on_files_down_pressed():
+    global file_selection
+    file_selection = (file_selection + 1) % len(file_options)
+    display_file_menu()
 
 def on_confirm_pressed():
     global option_confirmed
@@ -190,9 +205,19 @@ def display_yes_no_menu():
         else:
             print(f"  {option}")
 
+def display_file_menu():
+    os.system('clear')
+    print("=== File Selection ===")
+    print("\nAvailable audios files: ")
+
+    for i, option in enumerate(yes_no_options):
+        if i == yes_no_selection:
+            print(f"> {option}")
+        else:
+            print(f"  {option}")
+
 def main():
     global option_confirmed
-    audio = Audio()
     player_thread = th.Thread(target=audio.start_player, daemon=True)
     player_thread.start()
     reader = SimpleMFRC522()
@@ -251,14 +276,12 @@ def main():
                     
                     up.when_pressed = on_up_pressed
                     down.when_pressed = on_down_pressed
-                    confirm.when_pressed = on_confirm_pressed
 
                     if yes_no_selection == 1:
                         print("\nEntry not updated.")
                         option_confirmed = False
                         time.sleep(0.1)
                         continue
-
 
                 files = audio.get_files_in_folder()
                 if not files:
@@ -267,40 +290,28 @@ def main():
                     while not option_confirmed:
                         time.sleep(0.1)
                     continue
+                
+                up.when_pressed = on_files_up_pressed
+                down.when_pressed = on_files_down_pressed
 
-                file_selection = 0
-                while True:
-                    os.system('clear')
-                    print("\n=== Select Audio File ===")
-                    for i, file in enumerate(files):
-                        if i == file_selection:
-                            print(f"> {file}")
-                        else:
-                            print(f"  {file}")
+                display_yes_no_menu()
+                option_confirmed = False
 
-                    print("\n(Use Up/Down to navigate, Confirm to select)")
+                while not option_confirmed:
+                    time.sleep(0.1)
+                
+                up.when_pressed = on_up_pressed
+                down.when_pressed = on_down_pressed
 
-                    option_confirmed = False
-                    while not option_confirmed:
-                        time.sleep(0.1)
-
-                    if menu_selection == 0:
-                        file_path = files[file_selection]
-                        audio.add_file_to_db(str(id), file_path)
-                        print(f"\nSuccessfully associated '{file_path}' with RFID ID {id}.")
-                        time.sleep(1)
-                        break
-                    elif menu_selection == 1: 
-                        file_selection = (file_selection - 1) % len(files)
-                    elif menu_selection == 2:  # Down button pressed
-                        file_selection = (file_selection + 1) % len(files)
+                file_path = files[file_selection - 1]
+                audio.add_file_to_db(str(id), file_path)
+                print(f"\nSuccessfully associated '{file_path}' with RFID ID {id}.")
 
             except Exception as e:
                 print(f"\nAn error occurred: {str(e)}")
             finally:
                 option_confirmed = False
                 audio.reader_active = True
-                menu_selection = 0
                 time.sleep(0.1)
                 continue
 
