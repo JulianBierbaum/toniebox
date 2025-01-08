@@ -294,7 +294,7 @@ def main():
                 up.when_pressed = on_files_up_pressed
                 down.when_pressed = on_files_down_pressed
 
-                display_yes_no_menu()
+                display_file_menu()
                 option_confirmed = False
 
                 while not option_confirmed:
