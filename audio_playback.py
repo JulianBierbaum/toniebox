@@ -248,6 +248,8 @@ def main():
                         option_confirmed = False
                         while not option_confirmed:
                             time.sleep(0.1)
+                        
+                        yes_no_selection = 0
                         continue
 
 
