@@ -28,6 +28,7 @@ class Audio:
         self.current_audio_lock = Lock()
         self.current_audio = None
         self.playback_event = Event()
+        self.reader_active = True
         
         if not self.session.query(RFIDAudio).first():
             record = RFIDAudio(id="631430949643", file="outro.mp3")
@@ -103,6 +104,10 @@ class Audio:
         none_counter = 0
         
         while True:
+            if not self.reader_active:
+                time.sleep(0.1)
+                continue
+
             id, text = reader.read_no_block()
             if id is not None:
                 if id != current_id:
@@ -218,6 +223,9 @@ def main():
                 pass
 
         elif menu_selection == 1:
+            audio.stop()
+            audio.reader_active = False
+
             print("\n=== Current Database Entries ===")
             entries = audio.session.query(RFIDAudio).all()
             if entries:
@@ -278,6 +286,7 @@ def main():
                 print(f"\nAn error occurred: {str(e)}")
             finally:
                 option_confirmed = False
+                audio.reader_active = True
                 time.sleep(0.1)
                 continue
 
