@@ -143,7 +143,7 @@ class OLEDMenu:
         self.font = ImageFont.load_default()
         
         # Menu state
-        self.menu_options = ["Currently Playing", "Add/Update Audio", "List Audios", "Exit"]
+        self.menu_options = ["Currently Playing", "Add/Update Audio", "List Audios"]
         self.menu_selection = 0
         self.yes_no_options = ["Yes", "No"]
         self.yes_no_selection = 0
@@ -333,11 +333,6 @@ def main():
             else:
                 oled_menu.display_message("No audio files")
                 time.sleep(2)
-
-        elif oled_menu.menu_selection == 3:  # Exit
-            oled_menu.display_message("Exiting Program...")
-            time.sleep(1)
-            break
 
 if __name__ == "__main__":
     main()
