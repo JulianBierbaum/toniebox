@@ -210,8 +210,8 @@ def main():
                     print("\n(Press Confirm button to return to the menu.)")
                     time.sleep(0.5)
 
-                    if confirm.is_pressed:
-                        break
+                    while not option_confirmed:
+                        time.sleep(0.1)
             except option_confirmed:
                 pass
 
@@ -246,8 +246,7 @@ def main():
                     if yes_no_selection == 1:
                         print("\nEntry not updated.")
                         option_confirmed = False
-                        while not option_confirmed:
-                            time.sleep(0.1)
+                        time.sleep(0.1)
                         continue
 
 
@@ -277,8 +276,7 @@ def main():
                 print(f"\nAn error occurred: {str(e)}")
             finally:
                 option_confirmed = False
-                while not option_confirmed:
-                    time.sleep(0.1)
+                time.sleep(0.1)
                 continue
 
         elif menu_selection == 2:
