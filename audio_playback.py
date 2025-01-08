@@ -125,9 +125,9 @@ class Audio:
         pg.mixer.quit()
         self.session.close() 
 
-up = Button(24, bounce_time=0.1)
-down = Button(23, bounce_time=0.1)
-confirm = Button(22, bounce_time=0.1)
+up = Button(24, bounce_time=0.05)
+down = Button(23, bounce_time=0.05)
+confirm = Button(22, bounce_time=0.05)
 
 menu_options = ["View currently playing", "Add or update audio", "List audios in directory", "Exit"]
 current_selection = 0
@@ -156,7 +156,7 @@ def display_menu():
     print("=== RFID Audio Player Menu ===")
     for i, option in enumerate(menu_options):
         if i == current_selection:
-            print(f"> {option} <")
+            print(f"> {option}")
         else:
             print(f"  {option}")
 
