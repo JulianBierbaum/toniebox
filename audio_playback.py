@@ -268,25 +268,39 @@ def main():
                         time.sleep(0.1)
                     continue
 
-                print("\nAvailable audios:")
-                for i, file in enumerate(files, 1):
-                    print(f"{i}. {file}")
+                file_selection = 0
+                while True:
+                    os.system('clear')
+                    print("\n=== Select Audio File ===")
+                    for i, file in enumerate(files):
+                        if i == file_selection:
+                            print(f"> {file}")
+                        else:
+                            print(f"  {file}")
 
-                try:
-                    choice = int(input("\nEnter the number of the audio to associate with the RFID: ").strip())
-                    if 1 <= choice <= len(files):
-                        file_path = files[choice - 1]
+                    print("\n(Use Up/Down to navigate, Confirm to select)")
+
+                    option_confirmed = False
+                    while not option_confirmed:
+                        time.sleep(0.1)
+
+                    if menu_selection == 0:
+                        file_path = files[file_selection]
                         audio.add_file_to_db(str(id), file_path)
                         print(f"\nSuccessfully associated '{file_path}' with RFID ID {id}.")
-                    else:
-                        print("\nInvalid choice. Please select a valid number.")
-                except ValueError:
-                    print("\nInvalid input. Please enter a number.")
+                        time.sleep(1)
+                        break
+                    elif menu_selection == 1: 
+                        file_selection = (file_selection - 1) % len(files)
+                    elif menu_selection == 2:  # Down button pressed
+                        file_selection = (file_selection + 1) % len(files)
+
             except Exception as e:
                 print(f"\nAn error occurred: {str(e)}")
             finally:
                 option_confirmed = False
                 audio.reader_active = True
+                menu_selection = 0
                 time.sleep(0.1)
                 continue
 
