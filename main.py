@@ -18,16 +18,6 @@ from audio import Audio
 from rfidaudio import RFIDAudio
 print("Hello BJ!")
 # Database setup remains the same
-Base = declarative_base()
-DATABASE_URL = "sqlite:///rfid_audio.db"
-
-
-
-engine = create_engine(DATABASE_URL, echo=False)
-Session = sessionmaker(bind=engine)
-Base.metadata.create_all(engine)
-
-
 
 def main():
     print("Hello Main!")
