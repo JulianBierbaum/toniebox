@@ -336,8 +336,7 @@ def main():
 
                 selected_file = files[oled_menu.file_selection]
                 audio.add_file_to_db(str(id), selected_file)
-                oled_menu.display_message(f"Added: {selected_file}")
-                oled_menu.display_message(f"ID: {str(id)}")
+                oled_menu.display_message(f"Added: {selected_file}\nID: {str(id)}")
                 time.sleep(2)
 
             except Exception as e:
