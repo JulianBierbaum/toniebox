@@ -4,8 +4,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from mfrc522 import SimpleMFRC522
 import time
+from threading import Event, Lock
+from rfidaudio import RFIDAudio, Session
 
-from rfidaudio import RFIDAudio
+
 
 class Audio:
     def __init__(self):
