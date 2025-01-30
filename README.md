@@ -14,7 +14,7 @@ Code:
 ```sh
 #!/bin/bash
 source ~/toniebox/.venv/bin/activate
-python ~/toniebox/oled.py
+python ~/toniebox/main.py
 ```
 <br> 
 
