@@ -16,7 +16,7 @@ from PIL import ImageFont
 from menu import OLEDMenu
 from audio import Audio
 from rfidaudio import RFIDAudio
-
+print("Hello BJ!")
 # Database setup remains the same
 Base = declarative_base()
 DATABASE_URL = "sqlite:///rfid_audio.db"
@@ -30,15 +30,17 @@ Base.metadata.create_all(engine)
 
 
 def main():
+    print("Hello Main!")
     audio = Audio()  # Your existing Audio class
     oled_menu = OLEDMenu()
-    
+    print("Hello Main2!")
     # Start the RFID reader thread
     player_thread = th.Thread(target=audio.start_player, daemon=True)
     player_thread.start()
     reader = SimpleMFRC522()
 
     while True:
+        print("Hello BJ2!")
         oled_menu.current_menu = "main"
         oled_menu.display_menu()
         oled_menu.option_confirmed = False
