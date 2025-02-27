@@ -60,21 +60,15 @@ def main():
                     # Prompt for RFID tag
                     oled_menu.display_message("Hold RFID chip to reader")
                     
-                    # Set up button handlers to cancel read
-                    original_up = oled_menu.up.when_pressed
-                    original_down = oled_menu.down.when_pressed
+                    # Set up button handler to cancel read
                     original_confirm = oled_menu.confirm.when_pressed
-                    
-                    oled_menu.up.when_pressed = rfid_reader.cancel_read
-                    oled_menu.down.when_pressed = rfid_reader.cancel_read
+
                     oled_menu.confirm.when_pressed = rfid_reader.cancel_read
                     
                     # Try to read RFID tag with cancellation
                     id_val, _ = rfid_reader.read_with_timeout()
                     
-                    # Restore original button handlers
-                    oled_menu.up.when_pressed = original_up
-                    oled_menu.down.when_pressed = original_down
+                    # Restore original button handler
                     oled_menu.confirm.when_pressed = original_confirm
                     
                     if id_val is None:
