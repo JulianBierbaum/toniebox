@@ -8,6 +8,7 @@ import time
 import os
 from threading import Lock, Event
 from gpiozero import Button
+from gpiozero.pins.rpigpio import RPiGPIOFactory
 from luma.core.interface.serial import i2c
 from luma.core.render import canvas
 from luma.oled.device import sh1106
@@ -150,10 +151,12 @@ class OLEDMenu:
         self.file_selection = 0
         self.option_confirmed = False
         
+        factory = RPiGPIOFactory()
+        
         # Button setup
-        self.up = Button(24, bounce_time=0.05)
-        self.down = Button(23, bounce_time=0.05)
-        self.confirm = Button(22, bounce_time=0.05)
+        self.up = Button(24, pin_factory=factory, bounce_time=0.05)
+        self.down = Button(23, pin_factory=factory, bounce_time=0.05)
+        self.confirm = Button(22, pin_factory=factory, bounce_time=0.05)
         
         # Button handlers
         self.up.when_pressed = self.on_up_pressed
