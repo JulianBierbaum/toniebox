@@ -2,8 +2,7 @@ import pygame as pg
 import threading as th
 from mfrc522 import SimpleMFRC522
 from sqlalchemy import create_engine, Column, String
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 import time
 import os
 from threading import Lock, Event
