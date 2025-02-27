@@ -131,6 +131,27 @@ def main():
                     while not oled_menu.option_confirmed:
                         oled_menu.display_file_menu(files)
                         time.sleep(0.1)
+                    
+                    # User confirmed file selection
+                    selected_file = files[oled_menu.file_selection]
+                    
+                    # Stop playback and disable RFID reader
+                    audio_player.stop()
+                    audio_player.reader_active = False
+                    
+                    # Play selected file
+                    audio_player.play_file(selected_file)
+                    
+                    # Show currently playing screen until confirmation
+                    oled_menu.option_confirmed = False
+                    while not oled_menu.option_confirmed:
+                        current = audio_player.get_current_audio()
+                        oled_menu.display_current_audio(current)
+                        time.sleep(0.5)
+                    
+                    # Stop playback and re-enable RFID
+                    audio_player.stop()
+                    audio_player.reader_active = True
                 else:
                     oled_menu.display_message("No audio files")
                     time.sleep(2)

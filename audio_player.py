@@ -46,6 +46,21 @@ class AudioPlayer:
             self.session.add(record)
             self.session.commit()
     
+    def play_file(self, filename):
+        """Play an audio file directly by filename"""
+        # Stop any currently playing audio
+        if hasattr(self, 'audio_thread') and self.audio_thread.is_alive():
+            self.playback_event.set()
+            self.audio_thread.join()
+            
+        # Start new audio playback
+        self.playback_event.clear()
+        self.audio_thread = th.Thread(target=self._play_audio, args=(filename,))
+        self.audio_thread.daemon = True
+        with self.current_audio_lock:
+            self.current_audio = filename
+        self.audio_thread.start()
+    
     def play(self, file_id):
         """
         Play audio associated with the given RFID ID.
