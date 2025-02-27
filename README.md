@@ -4,7 +4,7 @@ Toniebox project using a Raspberry pi 4B
 
 # SETUP
 - create venv with name ```.venv``` in toniebox directory
-    - no requirements.txt file (just run oled.py and install packages until all the errors are gone)
+- install ```requirements.txt```
 
 ### Start script
 
