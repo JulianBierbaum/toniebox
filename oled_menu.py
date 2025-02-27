@@ -53,20 +53,22 @@ class OLEDMenu:
         self.encoder.when_rotated = self.handle_rotation
         self.confirm.when_pressed = self.on_confirm_pressed
 
-    def handle_rotation(self, delta):
+    def handle_rotation(self):
         """
         Handle rotary encoder rotation events.
-        
-        Args:
-            delta (int): Number of steps rotated (>0 clockwise, <0 counter-clockwise)
         """
-        # Process each step individually for proper menu wrapping
-        step = 1 if delta > 0 else -1
-        for _ in range(abs(delta)):
-            if step > 0:
+        # Get the current state of the encoder
+        if self.encoder.steps > 0:
+            # Clockwise rotation
+            for _ in range(self.encoder.steps):
                 self.on_down_pressed()
-            else:
+        elif self.encoder.steps < 0:
+            # Counter-clockwise rotation
+            for _ in range(abs(self.encoder.steps)):
                 self.on_up_pressed()
+        
+        # Reset the encoder steps after processing
+        self.encoder.steps = 0
 
     def on_up_pressed(self):
         """Handle upward navigation (original logic preserved)"""
