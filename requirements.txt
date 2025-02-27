@@ -4,3 +4,4 @@ sqlalchemy
 gpiozero
 luma.core
 luma.oled
+lgpio
