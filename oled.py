@@ -153,9 +153,9 @@ class OLEDMenu:
         factory = RPiGPIOFactory()
         
         # Button setup
-        self.up = Button(24, pin_factory=factory, bounce_time=0.05)
-        self.down = Button(23, pin_factory=factory, bounce_time=0.05)
-        self.confirm = Button(22, pin_factory=factory, bounce_time=0.05)
+        self.up = 0 # Button(24, pin_factory=factory, bounce_time=0.05)
+        self.down = 0 # Button(23, pin_factory=factory, bounce_time=0.05)
+        self.confirm = 0 # Button(22, pin_factory=factory, bounce_time=0.05)
         
         # Button handlers
         self.up.when_pressed = self.on_up_pressed
