@@ -130,10 +130,6 @@ class OLEDMenu:
                 prefix = ">" if start_idx + i == self.file_selection else " "
                 truncated_file = file[:18] if len(file) > 18 else file
                 draw.text((0, y_pos), f"{prefix} {truncated_file}", font=self.font, fill="white")
-            if start_idx > 0:
-                draw.text((120, 16), "^", font=self.font, fill="white")
-            if start_idx + 3 < len(files):
-                draw.text((120, 40), "v", font=self.font, fill="white")
 
     def display_current_audio(self, current_audio):
         """
