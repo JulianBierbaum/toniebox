@@ -26,6 +26,7 @@ Code:
 [Unit]
 Description=Start Python Script in venv
 After=network.target
+RequiresMountsFor=/media/pi
 
 [Service]
 ExecStart=/bin/bash /home/pi/toniebox/start_player.sh
@@ -53,5 +54,5 @@ WantedBy=multi-user.target
 
 Code:
 ``````bash
-UUID=USB_UUID /media/pi vfat defaults,noatime 0 2
+UUID=USB_UUID /media/pi vfat defaults,noatime,nofail 0 2
 ``````
