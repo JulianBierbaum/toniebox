@@ -36,7 +36,6 @@ class AudioPlayer:
         self.reader_active = True
         self.media_path = media_path
         
-        # Initialize database with a sample record if empty
         self._init_default_record()
     
     def _init_default_record(self):
