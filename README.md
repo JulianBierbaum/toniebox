@@ -25,16 +25,23 @@ Code:
 ```sh
 [Unit]
 Description=Start Python Script in venv
-After=network.target
-RequiresMountsFor=/media/pi
+After=media-pi.mount # Important: Wait for the specific mount unit
+Requires=media-pi.mount
+ConditionPathExists=/media/pi # Check if mount point exists
 
 [Service]
-ExecStart=/bin/bash /home/pi/toniebox/start_player.sh
 WorkingDirectory=/home/pi/toniebox
 StandardOutput=inherit
 StandardError=inherit
-Restart=always
+Restart=on-failure # Restart only on failure, not always.
 User=pi
+Group=pi
+Environment="DISPLAY=:0"
+Environment="XDG_RUNTIME_DIR=/run/user/1000"
+ExecStart=/usr/bin/bash /home/pi/toniebox/start_player.sh
+ProtectSystem=false
+ProtectHome=false
+NoNewPrivileges=false
 
 [Install]
 WantedBy=multi-user.target
