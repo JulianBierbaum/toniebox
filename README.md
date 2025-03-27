@@ -24,20 +24,24 @@ python ~/toniebox/main.py
 Code:
 ```sh
 [Unit]
-Description=Start Python Script in venv
+Description=Python Audio Player (Continuous)
 After=media-pi.mount
-Requires=media-pi.mount
+Wants=network.target sound.target
 
 [Service]
+Type=simple
 WorkingDirectory=/home/pi/toniebox
-StandardOutput=inherit
-StandardError=inherit
+ExecStart=/usr/bin/bash /home/pi/toniebox/start_player.sh
 Restart=on-failure
 User=pi
 Group=pi
 Environment="DISPLAY=:0"
 Environment="XDG_RUNTIME_DIR=/run/user/1000"
-ExecStart=/usr/bin/bash /home/pi/toniebox/start_player.sh
+
+TimeoutStartSec=30
+TimeoutStopSec=10
+KillMode=process
+SendSIGKILL=yes
 
 [Install]
 WantedBy=multi-user.target
