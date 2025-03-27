@@ -41,20 +41,11 @@ class RFIDReader:
         """
         return self.reader.read_no_block()
     
-    def read_with_timeout(self, timeout=None, check_interval=0.1):
-        """
-        Read an RFID tag with a timeout or until canceled.
-        
-        Args:
-            timeout (float, optional): Maximum time to wait in seconds. None for no timeout.
-            check_interval (float, optional): Time between read attempts in seconds.
-            
-        Returns:
-            tuple: (id, text) or (None, None) if timeout/canceled
-        """
+    def read_with_timeout(self, timeout=None, check_interval=0.1, max_retries=3):
         self.cancel_event.clear()
         start_time = time.time()
-        
+        retries = 0
+
         while True:
             # Check for timeout
             if timeout and (time.time() - start_time > timeout):
@@ -63,12 +54,23 @@ class RFIDReader:
             # Check for cancellation
             if self.cancel_event.is_set():
                 return None, None
+
+            try:
+                # Try to read tag
+                id_val, text = self.reader.read_no_block()
+                if id_val is not None:
+                    return id_val, text
+            except Exception as e:
+                print(f"RFID read error: {e}")
+                retries += 1
+                if retries > max_retries:
+                    print("Max retries reached, giving up.")
+                    return None, None
                 
-            # Try to read tag
-            id_val, text = self.reader.read_no_block()
-            if id_val is not None:
-                return id_val, text
-                
+                # Reinitialize reader
+                print("Reinitializing RFID reader...")
+                self.reader = SimpleMFRC522()
+            
             time.sleep(check_interval)
     
     def cancel_read(self):
