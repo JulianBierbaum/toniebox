@@ -44,7 +44,7 @@ WantedBy=multi-user.target
 
 - reload the systemd configuration with ```sudo systemctl daemon-reload```
 - enable the service to start on boot ```sudo systemctl enable audio_player.service```
-- start the service immediately (for testing) ```sudo systemctl audio_player.service```
+- start the service immediately (for testing) ```sudo systemctl start audio_player.service```
 
 
 ### Auto-mount USB
