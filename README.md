@@ -26,8 +26,6 @@ Code:
 [Unit]
 Description=Start Python Script in venv
 After=media-pi.mount
-Requires=media-pi.mount
-ConditionPathExists=/media/pi
 
 [Service]
 WorkingDirectory=/home/pi/toniebox
@@ -39,9 +37,6 @@ Group=pi
 Environment="DISPLAY=:0"
 Environment="XDG_RUNTIME_DIR=/run/user/1000"
 ExecStart=/usr/bin/bash /home/pi/toniebox/start_player.sh
-ProtectSystem=false
-ProtectHome=false
-NoNewPrivileges=false
 
 [Install]
 WantedBy=multi-user.target
@@ -53,6 +48,7 @@ WantedBy=multi-user.target
 - enable the service to start on boot ```sudo systemctl enable audio_player.service```
 - start the service immediately (for testing) ```sudo systemctl start audio_player.service```
 - check with ```systemctl status audio_player.service```
+- run ```sudo usermod -a -G audio pi```
 
 
 ### Auto-mount USB
