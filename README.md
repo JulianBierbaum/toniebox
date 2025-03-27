@@ -26,6 +26,7 @@ Code:
 [Unit]
 Description=Start Python Script in venv
 After=media-pi.mount
+Requires=media-pi.mount
 
 [Service]
 WorkingDirectory=/home/pi/toniebox
