@@ -25,15 +25,15 @@ Code:
 ```sh
 [Unit]
 Description=Start Python Script in venv
-After=media-pi.mount # Important: Wait for the specific mount unit
+After=media-pi.mount
 Requires=media-pi.mount
-ConditionPathExists=/media/pi # Check if mount point exists
+ConditionPathExists=/media/pi
 
 [Service]
 WorkingDirectory=/home/pi/toniebox
 StandardOutput=inherit
 StandardError=inherit
-Restart=on-failure # Restart only on failure, not always.
+Restart=on-failure
 User=pi
 Group=pi
 Environment="DISPLAY=:0"
@@ -52,6 +52,7 @@ WantedBy=multi-user.target
 - reload the systemd configuration with ```sudo systemctl daemon-reload```
 - enable the service to start on boot ```sudo systemctl enable audio_player.service```
 - start the service immediately (for testing) ```sudo systemctl start audio_player.service```
+- check with ```systemctl status audio_player.service```
 
 
 ### Auto-mount USB
