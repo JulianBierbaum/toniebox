@@ -1,10 +1,10 @@
 # toniebox
 Toniebox project using a Raspberry pi 4B
 
-
 # SETUP
 - create venv with name ```.venv``` in toniebox directory
 - install ```requirements.txt```
+- in the ```raspi-config``` enable ```Interface->SPI``` and ```Interface->I2C```
 
 ### Start script
 
