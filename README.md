@@ -1,7 +1,8 @@
-# toniebox
+# **Toniebox**
 Toniebox project using a Raspberry pi 4B
+Setup is using Raspberry PI OS Lite (64-Bit)
 
-# SETUP
+### Setup
 - create venv with name ```.venv``` in toniebox directory
 - install ```requirements.txt```
 - in the ```raspi-config``` enable ```Interface->SPI``` and ```Interface->I2C```
