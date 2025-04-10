@@ -2,6 +2,9 @@
 Toniebox project using a Raspberry pi 4B
 Setup is using Raspberry PI OS Lite (64-Bit)
 
+github:
+```git clone https://github.com/JulianBierbaum/toniebox.git```
+
 ### Setup
 - create venv with name ```.venv``` in toniebox directory
 - install ```requirements.txt```
