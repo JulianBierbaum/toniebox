@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 RFID Audio Player for Raspberry Pi
 

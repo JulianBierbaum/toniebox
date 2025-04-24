@@ -1,5 +1,5 @@
 # **Toniebox**
-Toniebox project using a Raspberry pi 4B
+Toniebox project using a Raspberry PI 4B
 Setup is using Raspberry PI OS Lite (64-Bit)
 
 github:
