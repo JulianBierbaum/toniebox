@@ -35,6 +35,8 @@ class AudioPlayer:
         self.playback_event = Event()
         self.reader_active = True
         self.media_path = media_path
+        self.audio_thread = None
+        self.thread_lock = Lock()  # Add a lock for thread management
         
         self._init_default_record()
     
@@ -47,18 +49,22 @@ class AudioPlayer:
     
     def play_file(self, filename):
         """Play an audio file directly by filename"""
-        # Stop any currently playing audio
-        if hasattr(self, 'audio_thread') and self.audio_thread.is_alive():
-            self.playback_event.set()
-            self.audio_thread.join()
+        # Stop any currently playing audio and ensure thread safety
+        with self.thread_lock:
+            self.stop()
             
-        # Start new audio playback
-        self.playback_event.clear()
-        self.audio_thread = th.Thread(target=self._play_audio, args=(filename,))
-        self.audio_thread.daemon = True
-        with self.current_audio_lock:
-            self.current_audio = filename
-        self.audio_thread.start()
+            # Update current audio info before starting thread
+            with self.current_audio_lock:
+                self.current_audio = filename
+            
+            # Start new audio playback
+            self.playback_event.clear()
+            self.audio_thread = th.Thread(target=self._play_audio, args=(filename,))
+            self.audio_thread.daemon = True
+            self.audio_thread.start()
+            
+            # Small delay to ensure playback has started
+            time.sleep(0.1)
     
     def play(self, file_id):
         """
@@ -73,19 +79,22 @@ class AudioPlayer:
                 self.current_audio = f"Unknown ID: {file_id}"
             return
 
-        with self.current_audio_lock:
-            self.current_audio = audio_file
+        with self.thread_lock:
+            # Stop any currently playing audio
+            self.stop()
             
-        # Stop any currently playing audio
-        if hasattr(self, 'audio_thread') and self.audio_thread.is_alive():
-            self.playback_event.set()
-            self.audio_thread.join()
+            # Update current audio info before starting thread
+            with self.current_audio_lock:
+                self.current_audio = audio_file
+                
+            # Start new audio playback
+            self.playback_event.clear()
+            self.audio_thread = th.Thread(target=self._play_audio, args=(audio_file,))
+            self.audio_thread.daemon = True  # Make thread daemon so it exits when main program exits
+            self.audio_thread.start()
             
-        # Start new audio playback
-        self.playback_event.clear()
-        self.audio_thread = th.Thread(target=self._play_audio, args=(audio_file,))
-        self.audio_thread.daemon = True  # Make thread daemon so it exits when main program exits
-        self.audio_thread.start()
+            # Small delay to ensure playback has started
+            time.sleep(0.1)
 
     def _play_audio(self, audio_file):
         """
@@ -96,6 +105,14 @@ class AudioPlayer:
         """
         try:
             full_path = os.path.join(self.media_path, audio_file)
+            
+            # Check if file exists before trying to play it
+            if not os.path.exists(full_path):
+                print(f"Audio file not found: {full_path}")
+                with self.current_audio_lock:
+                    self.current_audio = f"File not found: {audio_file}"
+                return
+                
             pg.mixer.music.load(full_path)
             pg.mixer.music.play()
             
@@ -106,14 +123,27 @@ class AudioPlayer:
         except Exception as e:
             print(f"Audio playback error: {str(e)}")
         finally:
+            # Only clear current_audio if it hasn't been changed
             with self.current_audio_lock:
                 if self.current_audio == audio_file:
                     self.current_audio = None
 
     def stop(self):
         """Stop any currently playing audio."""
+        # Set the event to signal thread to stop
         self.playback_event.set()
-        pg.mixer.music.stop()
+        
+        # Stop pygame playback
+        try:
+            pg.mixer.music.stop()
+        except:
+            pass
+            
+        # Wait for thread to finish if it exists and is alive
+        if self.audio_thread and self.audio_thread.is_alive():
+            self.audio_thread.join(timeout=1.0)  # Wait with timeout
+            
+        # Clear current audio
         with self.current_audio_lock:
             self.current_audio = None
 
@@ -185,23 +215,31 @@ class AudioPlayer:
                 time.sleep(0.1)
                 continue
 
-            id_val, text = rfid_reader.read_tag_no_block()
-            if id_val is not None:
-                if id_val != current_id:
-                    current_id = id_val
-                    self.play(str(id_val))
-                    time.sleep(2)  # Debounce time
-            
-            if id_val is None:
-                none_counter += 1
-            else:
-                none_counter = 0
-            
-            # Stop playback if tag is removed (multiple empty reads)
-            if none_counter >= 2:
-                self.stop()
+            try:
+                id_val, text = rfid_reader.read_tag_no_block()
+                if id_val is not None:
+                    if id_val != current_id:
+                        current_id = id_val
+                        self.play(str(id_val))
+                        time.sleep(2)  # Debounce time
+                
+                if id_val is None:
+                    none_counter += 1
+                else:
+                    none_counter = 0
+                
+                # Stop playback if tag is removed (multiple empty reads)
+                if none_counter >= 2:
+                    self.stop()
+                    none_counter = 0
+                    current_id = 0
+            except Exception as e:
+                print(f"Error in RFID reading loop: {str(e)}")
+                # Reset counters on error
                 none_counter = 0
                 current_id = 0
+                # Add a short delay to avoid tight error loops
+                time.sleep(1)
             
             time.sleep(0.1)
 
