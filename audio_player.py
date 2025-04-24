@@ -200,7 +200,7 @@ class AudioPlayer:
         with self.current_audio_lock:
             return self.current_audio
 
-    def start_player(self, rfid_reader):
+    def start_player(self, rfid_reader, shutdown_event):
         """
         Start continuously reading RFID tags and playing associated audio.
         
@@ -210,7 +210,7 @@ class AudioPlayer:
         current_id = 0
         none_counter = 0
         
-        while True:
+        while not shutdown_event.is_set():
             if not self.reader_active:
                 time.sleep(0.1)
                 continue
