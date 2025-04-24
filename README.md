@@ -69,3 +69,12 @@ Code:
 ``````bash
 UUID=USB_UUID /media/pi vfat defaults,noatime,nofail 0 2
 ``````
+
+### ALSA config
+Set up ALSA (Advanced Linux Sound Architecture) to work with an external speaker through the MAX98357A amplifier.
+
+- open `/boot/firmware/config.txt`
+- comment out the line `dtparam=audio=on`
+- add `dtoverlay=hifiberry-dac` to the file
+- reboot raspberry pi
+
