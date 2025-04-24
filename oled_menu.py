@@ -21,7 +21,7 @@ class OLEDMenu:
     for confirmation.
     """
     
-    def __init__(self, encoder_clk=21, encoder_dt=20, confirm_pin=16):
+    def __init__(self, encoder_clk=17, encoder_dt=20, confirm_pin=16):
         """
         Initialize the OLED display and input controls.
         
