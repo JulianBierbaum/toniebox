@@ -23,9 +23,11 @@ class RFIDReader:
         self.reader = SimpleMFRC522()
         self.active = True
         self.cancel_event = Event()
-        self.reader_lock = Lock()  # Add lock for thread safety
+        self.reader_lock = Lock()
         self.consecutive_errors = 0
         self.max_consecutive_errors = 3
+        self.last_successful_read_time = time.time()
+        self.reinit_interval = 10
     
     def read_tag(self):
         """
@@ -49,12 +51,18 @@ class RFIDReader:
         Returns:
             tuple: (id, text) from the RFID tag, or (None, None) if no tag
         """
+        if time.time() - self.last_successful_read_time > self.reinit_interval:
+            print("No successful reads for a while, proactively reinitializing reader...")
+            self._reset_reader()
+            self.last_successful_read_time = time.time()
+            
         with self.reader_lock:
             try:
                 id_val, text = self.reader.read_no_block()
-                # Reset consecutive error counter on successful read
+                # Reset consecutive error counter and update timestamp on successful read
                 if id_val is not None:
                     self.consecutive_errors = 0
+                    self.last_successful_read_time = time.time()
                 return id_val, text
             except Exception as e:
                 print(f"RFID read_no_block error: {e}")
