@@ -6,8 +6,9 @@ github:
 ```git clone https://github.com/JulianBierbaum/toniebox.git```
 
 ### Setup
-- in the ```raspi-config``` enable ```Interface->SPI``` and ```Interface->I2C```
 - the `setup.sh` script needs to be run in the toniebox directory the first time the player is used after that it is no longer neccesary
+
+- in the ```raspi-config``` enable ```Interface->SPI``` and ```Interface->I2C```
 
 <br> 
 
