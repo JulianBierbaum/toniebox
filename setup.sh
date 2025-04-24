@@ -1,5 +1,6 @@
 #!/bin/bash
 # Toniebox Setup Script for Raspberry Pi 4B
+# This script automates the setup process for the Toniebox project
 
 # Exit on any error
 set -e
@@ -16,6 +17,12 @@ pip install -r requirements.txt
 echo "Enabling SPI and I2C interfaces..."
 sudo raspi-config nonint do_spi 0
 sudo raspi-config nonint do_i2c 0
+
+# Run the original setup script if it exists
+if [ -f "./setup.sh" ]; then
+    echo "Running original setup script..."
+    bash ./setup.sh
+fi
 
 # Create systemd service for audio player
 echo "Setting up audio player service..."
@@ -51,6 +58,7 @@ sudo usermod -a -G audio pi
 echo "Enabling and starting audio player service..."
 sudo systemctl daemon-reload
 sudo systemctl enable audio_player.service
+sudo systemctl start audio_player.service
 
 # Set up USB auto-mount
 echo "Setting up USB auto-mount..."
@@ -64,12 +72,11 @@ else
     echo "USB UUID detected: $USB_UUID"
     # Create mount point if it doesn't exist
     sudo mkdir -p /media/pi
-    sudo chown -R pi:pi /media/pi
     
-    # Add entry to fstab
+    # Add entry to fstab with proper permissions for FAT filesystem
     echo "Updating fstab..."
     if ! grep -q "$USB_UUID" /etc/fstab; then
-        echo "UUID=$USB_UUID /media/pi vfat defaults,noatime,nofail 0 2" | sudo tee -a /etc/fstab
+        echo "UUID=$USB_UUID /media/pi vfat defaults,uid=1000,gid=1000,umask=022,noatime,nofail 0 2" | sudo tee -a /etc/fstab
     else
         echo "USB entry already exists in fstab. Skipping."
     fi
