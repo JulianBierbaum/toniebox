@@ -9,19 +9,11 @@ github:
 - create venv with name ```.venv``` in toniebox directory
 - install ```requirements.txt```
 - in the ```raspi-config``` enable ```Interface->SPI``` and ```Interface->I2C```
+- the `setup.sh` script needs to be run the first time the player is used after that it is no longer neccesary
 
-### Start script
-
-- create ```start_player.sh``` in toniebox directory
-
-Code:
-```sh
-#!/bin/bash
-source ~/toniebox/.venv/bin/activate
-python ~/toniebox/main.py
-```
 <br> 
 
+### Watchdog script
 - go to ```/etc/systemd/system```
 - create ```audio_player.service``` file
 
