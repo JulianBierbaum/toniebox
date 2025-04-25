@@ -12,8 +12,6 @@ github:
 
 - in the ```raspi-config``` enable ```Interface->SPI``` and ```Interface->I2C```
 
-<br> 
-
 #### Watchdog script
 - go to ```/etc/systemd/system```
 - create ```audio_player.service``` file
@@ -51,7 +49,6 @@ WantedBy=multi-user.target
 - start the service immediately (for testing) ```sudo systemctl start audio_player.service```
 - check with ```systemctl status audio_player.service```
 - run ```sudo usermod -a -G audio pi```
-
 
 #### Auto-mount USB
 
