@@ -5,6 +5,10 @@ Setup is using Raspberry PI OS Lite (64-Bit)
 github:
 ```git clone https://github.com/JulianBierbaum/toniebox.git```
 
+### Debugging
+- logs are automatically created under the `logs` directory
+- you can live-watch the logs using the `tail -f rfid_player.log` commmand
+
 ### Setup
 - the `setup.sh` script needs to be run in the toniebox directory the first time the player is used after that it is no longer neccesary
 - if the setup file is not working you can follow the steps below:
