@@ -12,6 +12,9 @@ import os
 from threading import Lock, Event
 
 from models import Session, RFIDAudio
+from logger import get_logger
+
+logger = get_logger(__name__)
 
 class AudioPlayer:
     """
@@ -28,6 +31,7 @@ class AudioPlayer:
         Args:
             media_path (str): Path to the directory containing audio files
         """
+        logger.info("Initializing AudioPlayer")
         pg.mixer.init()
         self.session = Session()
         self.current_audio_lock = Lock()
@@ -43,12 +47,14 @@ class AudioPlayer:
     def _init_default_record(self):
         """Initialize the database with a default record if it's empty."""
         if not self.session.query(RFIDAudio).first():
+            logger.info("Initializing database with default record")
             record = RFIDAudio(id="631430949643", file="outro.mp3")
             self.session.add(record)
             self.session.commit()
     
     def play_file(self, filename):
         """Play an audio file directly by filename"""
+        logger.info(f"Playing file: {filename}")
         # Stop any currently playing audio and ensure thread safety
         with self.thread_lock:
             self.stop()
@@ -75,10 +81,12 @@ class AudioPlayer:
         """
         audio_file = self.get_file(file_id)
         if not audio_file:
+            logger.warning(f"Unknown RFID ID: {file_id}")
             with self.current_audio_lock:
                 self.current_audio = f"Unknown ID: {file_id}"
             return
 
+        logger.info(f"Playing audio for RFID ID: {file_id}, file: {audio_file}")
         with self.thread_lock:
             # Stop any currently playing audio
             self.stop()
@@ -108,25 +116,27 @@ class AudioPlayer:
             
             # Check if file exists before trying to play it
             if not os.path.exists(full_path):
-                print(f"Audio file not found: {full_path}")
+                logger.error(f"Audio file not found: {full_path}")
                 with self.current_audio_lock:
                     self.current_audio = f"File not found: {audio_file}"
                 return
                 
             pg.mixer.music.load(full_path)
             pg.mixer.music.play()
+            logger.debug(f"Started playback of: {audio_file}")
             
             # Keep thread alive until playback finishes or is interrupted
             while pg.mixer.music.get_busy() and not self.playback_event.is_set():
                 pg.time.Clock().tick(10)
                 
         except Exception as e:
-            print(f"Audio playback error: {str(e)}")
+            logger.error(f"Audio playback error: {str(e)}")
         finally:
             # Only clear current_audio if it hasn't been changed
             with self.current_audio_lock:
                 if self.current_audio == audio_file:
                     self.current_audio = None
+            logger.debug(f"Playback finished or stopped: {audio_file}")
 
     def stop(self):
         """Stop any currently playing audio."""
@@ -136,8 +146,9 @@ class AudioPlayer:
         # Stop pygame playback
         try:
             pg.mixer.music.stop()
-        except:
-            pass
+            logger.debug("Stopped audio playback")
+        except Exception as e:
+            logger.debug(f"Error stopping playback: {str(e)}")
             
         # Wait for thread to finish if it exists and is alive
         if self.audio_thread and self.audio_thread.is_alive():
@@ -169,10 +180,13 @@ class AudioPlayer:
         """
         folder_path = self.media_path
         if not os.path.exists(folder_path):
+            logger.warning(f"Media directory not found: {folder_path}")
             return []
             
-        return [file for file in os.listdir(folder_path) 
+        files = [file for file in os.listdir(folder_path) 
                 if os.path.isfile(os.path.join(folder_path, file))]
+        logger.debug(f"Found {len(files)} files in {folder_path}")
+        return files
 
     def add_file_to_db(self, file_id, file_name):
         """
@@ -184,8 +198,10 @@ class AudioPlayer:
         """
         record = self.session.query(RFIDAudio).filter_by(id=file_id).first()
         if record:
+            logger.info(f"Updating RFID mapping: ID {file_id} from {record.file} to {file_name}")
             record.file = file_name
         else:
+            logger.info(f"Adding new RFID mapping: ID {file_id} to {file_name}")
             record = RFIDAudio(id=file_id, file=file_name)
             self.session.add(record)
         self.session.commit()
@@ -207,6 +223,7 @@ class AudioPlayer:
         Args:
             rfid_reader: An instance of RFIDReader to use for tag reading
         """
+        logger.info("Starting RFID player loop")
         current_id = 0
         none_counter = 0
         
@@ -220,6 +237,7 @@ class AudioPlayer:
                 if id_val is not None:
                     if id_val != current_id:
                         current_id = id_val
+                        logger.info(f"New RFID tag detected: {id_val}")
                         self.play(str(id_val))
                         time.sleep(2)  # Debounce time
                 
@@ -230,11 +248,13 @@ class AudioPlayer:
                 
                 # Stop playback if tag is removed (multiple empty reads)
                 if none_counter >= 2:
+                    if current_id != 0:
+                        logger.debug(f"RFID tag removed: {current_id}")
                     self.stop()
                     none_counter = 0
                     current_id = 0
             except Exception as e:
-                print(f"Error in RFID reading loop: {str(e)}")
+                logger.error(f"Error in RFID reading loop: {str(e)}")
                 # Reset counters on error
                 none_counter = 0
                 current_id = 0
@@ -245,12 +265,13 @@ class AudioPlayer:
 
     def __del__(self):
         """Clean up resources when object is destroyed."""
+        logger.debug("Cleaning up AudioPlayer resources")
         try:
             pg.mixer.quit()
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"Error during cleanup: {str(e)}")
             
         try:
             self.session.close()
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"Error closing session: {str(e)}")

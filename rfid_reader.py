@@ -10,6 +10,10 @@ import time
 from threading import Event, Lock
 import RPi.GPIO as GPIO
 
+from logger import get_logger
+
+logger = get_logger(__name__)
+
 class RFIDReader:
     """
     A class to handle RFID tag reading operations.
@@ -20,6 +24,7 @@ class RFIDReader:
     
     def __init__(self):
         """Initialize the RFID reader."""
+        logger.info("Initializing RFID reader")
         self.reader = SimpleMFRC522()
         self.active = True
         self.cancel_event = Event()
@@ -38,9 +43,11 @@ class RFIDReader:
         """
         with self.reader_lock:
             try:
-                return self.reader.read()
+                id_val, text = self.reader.read()
+                logger.debug(f"Read RFID tag: {id_val}")
+                return id_val, text
             except Exception as e:
-                print(f"RFID read error: {e}")
+                logger.error(f"RFID read error: {e}")
                 self._reset_reader()
                 return None, None
     
@@ -52,7 +59,7 @@ class RFIDReader:
             tuple: (id, text) from the RFID tag, or (None, None) if no tag
         """
         if time.time() - self.last_successful_read_time > self.reinit_interval:
-            print("No successful reads for a while, proactively reinitializing reader...")
+            logger.info("No successful reads for a while, proactively reinitializing reader...")
             self._reset_reader()
             self.last_successful_read_time = time.time()
             
@@ -61,15 +68,17 @@ class RFIDReader:
                 id_val, text = self.reader.read_no_block()
                 # Reset consecutive error counter and update timestamp on successful read
                 if id_val is not None:
+                    logger.debug(f"Non-blocking read successful: {id_val}")
                     self.consecutive_errors = 0
                     self.last_successful_read_time = time.time()
                 return id_val, text
             except Exception as e:
-                print(f"RFID read_no_block error: {e}")
+                logger.error(f"RFID read_no_block error: {e}")
                 self.consecutive_errors += 1
                 
                 # If we get too many consecutive errors, reset the reader
                 if self.consecutive_errors >= self.max_consecutive_errors:
+                    logger.warning(f"Too many consecutive errors ({self.consecutive_errors}), resetting reader")
                     self._reset_reader()
                     self.consecutive_errors = 0
                     
@@ -81,11 +90,11 @@ class RFIDReader:
             # Clean up GPIO first
             GPIO.cleanup()
             # Reinitialize reader
-            print("Reinitializing RFID reader...")
+            logger.info("Reinitializing RFID reader...")
             time.sleep(0.5)  # Give hardware time to reset
             self.reader = SimpleMFRC522()
         except Exception as e:
-            print(f"Error resetting RFID reader: {e}")
+            logger.error(f"Error resetting RFID reader: {e}")
     
     def read_with_timeout(self, timeout=30, check_interval=0.1, max_retries=3):
         """
@@ -99,6 +108,7 @@ class RFIDReader:
         Returns:
             tuple: (id, text) from the RFID tag, or (None, None) if timeout/cancelled
         """
+        logger.info(f"Starting RFID read with {timeout}s timeout")
         self.cancel_event.clear()
         start_time = time.time()
         retries = 0
@@ -106,12 +116,12 @@ class RFIDReader:
         while True:
             # Check for timeout
             if timeout and (time.time() - start_time > timeout):
-                print("RFID read timeout")
+                logger.info("RFID read timeout")
                 return None, None
                 
             # Check for cancellation
             if self.cancel_event.is_set():
-                print("RFID read cancelled")
+                logger.info("RFID read cancelled")
                 return None, None
 
             with self.reader_lock:
@@ -119,12 +129,13 @@ class RFIDReader:
                     # Try to read tag
                     id_val, text = self.reader.read_no_block()
                     if id_val is not None:
+                        logger.info(f"Successfully read RFID tag: {id_val}")
                         return id_val, text
                 except Exception as e:
-                    print(f"RFID read error: {e}")
+                    logger.error(f"RFID read error: {e}")
                     retries += 1
                     if retries > max_retries:
-                        print("Max retries reached, giving up.")
+                        logger.warning("Max retries reached, giving up.")
                         # Reset the reader before giving up
                         self._reset_reader()
                         return None, None
@@ -136,5 +147,5 @@ class RFIDReader:
     
     def cancel_read(self):
         """Cancel an ongoing read_with_timeout operation."""
-        print("Cancelling RFID read")
+        logger.info("Cancelling RFID read")
         self.cancel_event.set()
