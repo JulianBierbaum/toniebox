@@ -39,8 +39,7 @@ class RFIDReader:
         try:
             # Clean up GPIO
             GPIO.cleanup()
-            # Reinitialize reader
-            logger.info("Reinitializing RFID reader...")
+
             time.sleep(0.5)  # Give hardware time to reset
             self.reader = SimpleMFRC522()
         except Exception as e:
@@ -99,7 +98,6 @@ class RFIDReader:
         """
         # Check if we need a proactive reset
         if time.time() - self.last_successful_read_time > self.reinit_interval:
-            logger.info("No successful reads for a while, proactively reinitializing reader...")
             self._reset_reader()
             self.last_successful_read_time = time.time()
             
