@@ -7,8 +7,8 @@ github:
 
 ### Setup
 - the `setup.sh` script needs to be run in the toniebox directory the first time the player is used after that it is no longer neccesary
-<br>
 - if the setup file is not working you can follow the steps below:
+<br>
 
 - in the ```raspi-config``` enable ```Interface->SPI``` and ```Interface->I2C```
 
