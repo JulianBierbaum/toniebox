@@ -34,13 +34,13 @@ class AudioPlayer:
         logger.info("Initializing AudioPlayer")
         pg.mixer.init()
         self.session = Session()
-        self.audio_lock = Lock()  # Single lock for all thread-sensitive operations
+        self.audio_lock = Lock()
         self.current_audio = None
         self.playback_event = Event()
         self.reader_active = True
         self.media_path = media_path
         self.audio_thread = None
-        
+
         self._init_default_record()
     
     def _init_default_record(self):
