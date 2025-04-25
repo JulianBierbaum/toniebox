@@ -73,44 +73,46 @@ class OLEDMenu:
         Handle rotary encoder rotation events.
         """
         # Get the current state of the encoder
-        if self.encoder.steps > 0:
-            # Clockwise rotation
-            logger.debug(f"Encoder rotated clockwise: {self.encoder.steps} steps")
-            for _ in range(self.encoder.steps):
-                self.on_down_pressed()
-        elif self.encoder.steps < 0:
-            # Counter-clockwise rotation
-            logger.debug(f"Encoder rotated counter-clockwise: {abs(self.encoder.steps)} steps")
-            for _ in range(abs(self.encoder.steps)):
-                self.on_up_pressed()
-        
-        # Reset the encoder steps after processing
-        self.encoder.steps = 0
+        steps = self.encoder.steps
+        if steps != 0:
+            logger.debug(f"Encoder rotated: {steps} steps")
+            # Direction-based navigation
+            if steps > 0:
+                for _ in range(steps):
+                    self._change_selection(1)  # Down/increment
+            else:
+                for _ in range(abs(steps)):
+                    self._change_selection(-1)  # Up/decrement
+            
+            # Reset the encoder steps after processing
+            self.encoder.steps = 0
+            self.update_display()
 
-    def on_up_pressed(self):
-        """Handle upward navigation"""
+    def _change_selection(self, direction):
+        """
+        Change selection based on direction.
+        
+        Args:
+            direction (int): 1 for increment, -1 for decrement
+        """
         if self.current_menu == "main":
-            self.menu_selection = (self.menu_selection - 1) % len(self.menu_options)
+            self.menu_selection = (self.menu_selection + direction) % len(self.menu_options)
             logger.debug(f"Main menu selection changed to: {self.menu_options[self.menu_selection]}")
         elif self.current_menu == "yes_no":
-            self.yes_no_selection = (self.yes_no_selection - 1) % len(self.yes_no_options)
+            self.yes_no_selection = (self.yes_no_selection + direction) % len(self.yes_no_options)
             logger.debug(f"Yes/No selection changed to: {self.yes_no_options[self.yes_no_selection]}")
         elif self.current_menu == "files" and self.file_options:
-            self.file_selection = (self.file_selection - 1) % len(self.file_options)
+            self.file_selection = (self.file_selection + direction) % len(self.file_options)
             logger.debug(f"File selection changed to: {self.file_options[self.file_selection]}")
+
+    def on_up_pressed(self):
+        """Handle upward navigation (legacy method for compatibility)"""
+        self._change_selection(-1)
         self.update_display()
 
     def on_down_pressed(self):
-        """Handle downward navigation"""
-        if self.current_menu == "main":
-            self.menu_selection = (self.menu_selection + 1) % len(self.menu_options)
-            logger.debug(f"Main menu selection changed to: {self.menu_options[self.menu_selection]}")
-        elif self.current_menu == "yes_no":
-            self.yes_no_selection = (self.yes_no_selection + 1) % len(self.yes_no_options)
-            logger.debug(f"Yes/No selection changed to: {self.yes_no_options[self.yes_no_selection]}")
-        elif self.current_menu == "files" and self.file_options:
-            self.file_selection = (self.file_selection + 1) % len(self.file_options)
-            logger.debug(f"File selection changed to: {self.file_options[self.file_selection]}")
+        """Handle downward navigation (legacy method for compatibility)"""
+        self._change_selection(1)
         self.update_display()
 
     def on_confirm_pressed(self):
@@ -118,15 +120,44 @@ class OLEDMenu:
         self.option_confirmed = True
         logger.debug(f"Selection confirmed in menu: {self.current_menu}")
 
+    def _draw_menu_items(self, draw, items, selection, start_y=16, prefix_selected=">", prefix_normal=" "):
+        """
+        Draw a list of menu items with selection indicator.
+        
+        Args:
+            draw: PIL drawing context
+            items: List of items to display
+            selection: Index of selected item
+            start_y: Starting Y position for first item
+            prefix_selected: Prefix for selected item
+            prefix_normal: Prefix for non-selected items
+        """
+        # For file menu with many items, show a sliding window around the selection
+        if len(items) > 3 and self.current_menu == "files":
+            start_idx = max(0, min(selection, len(items) - 3))
+            visible_items = items[start_idx:start_idx + 3]
+            selection_offset = selection - start_idx
+            
+            for i, item in enumerate(visible_items):
+                y_pos = start_y + (i * 12)
+                prefix = prefix_selected if i == selection_offset else prefix_normal
+                # Truncate long filenames
+                if len(item) > 18:
+                    item = item[:18]
+                draw.text((0, y_pos), f"{prefix} {item}", font=self.font, fill="white")
+        else:
+            # Standard menu display (all items visible)
+            for i, item in enumerate(items):
+                y_pos = start_y + (i * 12)
+                prefix = prefix_selected if i == selection else prefix_normal
+                draw.text((0, y_pos), f"{prefix} {item}", font=self.font, fill="white")
+
     def display_menu(self):
         """Display the main menu on the OLED screen."""
         logger.debug("Displaying main menu")
         with canvas(self.device) as draw:
             draw.text((0, 0), "RFID Audio Player", font=self.font, fill="white")
-            for i, option in enumerate(self.menu_options):
-                y_pos = 16 + (i * 12)
-                prefix = ">" if i == self.menu_selection else " "
-                draw.text((0, y_pos), f"{prefix} {option}", font=self.font, fill="white")
+            self._draw_menu_items(draw, self.menu_options, self.menu_selection)
 
     def display_yes_no_menu(self):
         """Display a yes/no confirmation menu on the OLED screen."""
@@ -134,10 +165,7 @@ class OLEDMenu:
         with canvas(self.device) as draw:
             draw.text((0, 0), "Overwrite?", font=self.font, fill="white")
             draw.text((0, 16), "Entry exists", font=self.font, fill="white")
-            for i, option in enumerate(self.yes_no_options):
-                y_pos = 32 + (i * 12)
-                prefix = ">" if i == self.yes_no_selection else " "
-                draw.text((0, y_pos), f"{prefix} {option}", font=self.font, fill="white")
+            self._draw_menu_items(draw, self.yes_no_options, self.yes_no_selection, start_y=32)
 
     def display_file_menu(self, files):
         """
@@ -149,13 +177,7 @@ class OLEDMenu:
         logger.debug(f"Displaying file menu with {len(files)} files")
         with canvas(self.device) as draw:
             draw.text((0, 0), "Files:", font=self.font, fill="white")
-            start_idx = max(0, min(self.file_selection, len(files) - 3))
-            visible_files = files[start_idx:start_idx + 3]
-            for i, file in enumerate(visible_files):
-                y_pos = 16 + (i * 12)
-                prefix = ">" if start_idx + i == self.file_selection else " "
-                truncated_file = file[:18] if len(file) > 18 else file
-                draw.text((0, y_pos), f"{prefix} {truncated_file}", font=self.font, fill="white")
+            self._draw_menu_items(draw, files, self.file_selection)
 
     def display_current_audio(self, current_audio):
         """
@@ -186,19 +208,41 @@ class OLEDMenu:
         """
         logger.debug(f"Displaying message: {message[:20]}...")
         with canvas(self.device) as draw:
-            words = message.split()
-            lines = []
-            current_line = []
-            for word in words:
-                if len(' '.join(current_line + [word])) <= 18:
-                    current_line.append(word)
-                else:
-                    lines.append(' '.join(current_line))
-                    current_line = [word]
-            if current_line:
-                lines.append(' '.join(current_line))
-            for i, line in enumerate(lines[:4]):
+            # Split the message into lines that fit the display
+            lines = self._wrap_text_to_lines(message, max_chars=18)
+            for i, line in enumerate(lines[:4]):  # Display up to 4 lines
                 draw.text((0, i * 16), line, font=self.font, fill="white")
+
+    def _wrap_text_to_lines(self, text, max_chars=18):
+        """
+        Split text into lines with word wrapping.
+        
+        Args:
+            text (str): Text to wrap
+            max_chars (int): Maximum characters per line
+            
+        Returns:
+            list: List of wrapped text lines
+        """
+        words = text.split()
+        lines = []
+        current_line = []
+        
+        for word in words:
+            # If adding this word exceeds max length
+            if len(' '.join(current_line + [word])) <= max_chars:
+                current_line.append(word)
+            else:
+                # Add the current line and start a new one
+                if current_line:
+                    lines.append(' '.join(current_line))
+                current_line = [word]
+        
+        # Add the last line if not empty
+        if current_line:
+            lines.append(' '.join(current_line))
+            
+        return lines
 
     def update_display(self):
         """Update the display based on current menu state."""

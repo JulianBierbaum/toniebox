@@ -34,13 +34,12 @@ class AudioPlayer:
         logger.info("Initializing AudioPlayer")
         pg.mixer.init()
         self.session = Session()
-        self.current_audio_lock = Lock()
+        self.audio_lock = Lock()  # Single lock for all thread-sensitive operations
         self.current_audio = None
         self.playback_event = Event()
         self.reader_active = True
         self.media_path = media_path
         self.audio_thread = None
-        self.thread_lock = Lock()  # Add a lock for thread management
         
         self._init_default_record()
     
@@ -55,22 +54,7 @@ class AudioPlayer:
     def play_file(self, filename):
         """Play an audio file directly by filename"""
         logger.info(f"Playing file: {filename}")
-        # Stop any currently playing audio and ensure thread safety
-        with self.thread_lock:
-            self.stop()
-            
-            # Update current audio info before starting thread
-            with self.current_audio_lock:
-                self.current_audio = filename
-            
-            # Start new audio playback
-            self.playback_event.clear()
-            self.audio_thread = th.Thread(target=self._play_audio, args=(filename,))
-            self.audio_thread.daemon = True
-            self.audio_thread.start()
-            
-            # Small delay to ensure playback has started
-            time.sleep(0.1)
+        self._play_audio_track(filename)
     
     def play(self, file_id):
         """
@@ -82,27 +66,32 @@ class AudioPlayer:
         audio_file = self.get_file(file_id)
         if not audio_file:
             logger.warning(f"Unknown RFID ID: {file_id}")
-            with self.current_audio_lock:
+            with self.audio_lock:
                 self.current_audio = f"Unknown ID: {file_id}"
             return
 
         logger.info(f"Playing audio for RFID ID: {file_id}, file: {audio_file}")
-        with self.thread_lock:
+        self._play_audio_track(audio_file)
+
+    def _play_audio_track(self, audio_file):
+        """
+        Unified method to handle both direct file playback and RFID-triggered playback.
+        
+        Args:
+            audio_file (str): The audio file to play
+        """
+        with self.audio_lock:
             # Stop any currently playing audio
             self.stop()
             
-            # Update current audio info before starting thread
-            with self.current_audio_lock:
-                self.current_audio = audio_file
+            # Update current audio info
+            self.current_audio = audio_file
                 
             # Start new audio playback
             self.playback_event.clear()
             self.audio_thread = th.Thread(target=self._play_audio, args=(audio_file,))
             self.audio_thread.daemon = True  # Make thread daemon so it exits when main program exits
             self.audio_thread.start()
-            
-            # Small delay to ensure playback has started
-            time.sleep(0.1)
 
     def _play_audio(self, audio_file):
         """
@@ -117,7 +106,7 @@ class AudioPlayer:
             # Check if file exists before trying to play it
             if not os.path.exists(full_path):
                 logger.error(f"Audio file not found: {full_path}")
-                with self.current_audio_lock:
+                with self.audio_lock:
                     self.current_audio = f"File not found: {audio_file}"
                 return
                 
@@ -133,7 +122,7 @@ class AudioPlayer:
             logger.error(f"Audio playback error: {str(e)}")
         finally:
             # Only clear current_audio if it hasn't been changed
-            with self.current_audio_lock:
+            with self.audio_lock:
                 if self.current_audio == audio_file:
                     self.current_audio = None
             logger.debug(f"Playback finished or stopped: {audio_file}")
@@ -153,10 +142,6 @@ class AudioPlayer:
         # Wait for thread to finish if it exists and is alive
         if self.audio_thread and self.audio_thread.is_alive():
             self.audio_thread.join(timeout=1.0)  # Wait with timeout
-            
-        # Clear current audio
-        with self.current_audio_lock:
-            self.current_audio = None
 
     def get_file(self, file_id):
         """
@@ -213,7 +198,7 @@ class AudioPlayer:
         Returns:
             str or None: The currently playing audio filename or None
         """
-        with self.current_audio_lock:
+        with self.audio_lock:
             return self.current_audio
 
     def start_player(self, rfid_reader, shutdown_event):
@@ -222,6 +207,7 @@ class AudioPlayer:
         
         Args:
             rfid_reader: An instance of RFIDReader to use for tag reading
+            shutdown_event: Event to monitor for shutdown signals
         """
         logger.info("Starting RFID player loop")
         current_id = 0
@@ -258,7 +244,6 @@ class AudioPlayer:
                 # Reset counters on error
                 none_counter = 0
                 current_id = 0
-                # Add a short delay to avoid tight error loops
                 time.sleep(1)
             
             time.sleep(0.1)
@@ -267,6 +252,7 @@ class AudioPlayer:
         """Clean up resources when object is destroyed."""
         logger.debug("Cleaning up AudioPlayer resources")
         try:
+            self.stop()
             pg.mixer.quit()
         except Exception as e:
             logger.debug(f"Error during cleanup: {str(e)}")

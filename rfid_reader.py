@@ -34,6 +34,47 @@ class RFIDReader:
         self.last_successful_read_time = time.time()
         self.reinit_interval = 10
     
+    def _reset_reader(self):
+        """Reset the RFID reader hardware."""
+        try:
+            # Clean up GPIO
+            GPIO.cleanup()
+            # Reinitialize reader
+            logger.info("Reinitializing RFID reader...")
+            time.sleep(0.5)  # Give hardware time to reset
+            self.reader = SimpleMFRC522()
+        except Exception as e:
+            logger.error(f"Error resetting RFID reader: {e}")
+    
+    def _handle_read_error(self, error, operation="read"):
+        """
+        Centralized error handling for RFID read operations
+        
+        Args:
+            error: The exception that occurred
+            operation: String describing the operation that failed
+            
+        Returns:
+            tuple: (None, None) as default error return value
+        """
+        logger.error(f"RFID {operation} error: {error}")
+        self.consecutive_errors += 1
+        
+        # If we get too many consecutive errors, reset the reader
+        if self.consecutive_errors >= self.max_consecutive_errors:
+            logger.warning(f"Too many consecutive errors ({self.consecutive_errors}), resetting reader")
+            self._reset_reader()
+            self.consecutive_errors = 0
+            
+        return None, None
+    
+    def _update_success_metrics(self, id_val):
+        """Update tracking metrics on successful read"""
+        if id_val is not None:
+            logger.debug(f"Read successful: {id_val}")
+            self.consecutive_errors = 0
+            self.last_successful_read_time = time.time()
+    
     def read_tag(self):
         """
         Read an RFID tag and return its ID.
@@ -44,12 +85,10 @@ class RFIDReader:
         with self.reader_lock:
             try:
                 id_val, text = self.reader.read()
-                logger.debug(f"Read RFID tag: {id_val}")
+                self._update_success_metrics(id_val)
                 return id_val, text
             except Exception as e:
-                logger.error(f"RFID read error: {e}")
-                self._reset_reader()
-                return None, None
+                return self._handle_read_error(e)
     
     def read_tag_no_block(self):
         """
@@ -58,6 +97,7 @@ class RFIDReader:
         Returns:
             tuple: (id, text) from the RFID tag, or (None, None) if no tag
         """
+        # Check if we need a proactive reset
         if time.time() - self.last_successful_read_time > self.reinit_interval:
             logger.info("No successful reads for a while, proactively reinitializing reader...")
             self._reset_reader()
@@ -66,35 +106,10 @@ class RFIDReader:
         with self.reader_lock:
             try:
                 id_val, text = self.reader.read_no_block()
-                # Reset consecutive error counter and update timestamp on successful read
-                if id_val is not None:
-                    logger.debug(f"Non-blocking read successful: {id_val}")
-                    self.consecutive_errors = 0
-                    self.last_successful_read_time = time.time()
+                self._update_success_metrics(id_val)
                 return id_val, text
             except Exception as e:
-                logger.error(f"RFID read_no_block error: {e}")
-                self.consecutive_errors += 1
-                
-                # If we get too many consecutive errors, reset the reader
-                if self.consecutive_errors >= self.max_consecutive_errors:
-                    logger.warning(f"Too many consecutive errors ({self.consecutive_errors}), resetting reader")
-                    self._reset_reader()
-                    self.consecutive_errors = 0
-                    
-                return None, None
-    
-    def _reset_reader(self):
-        """Reset the RFID reader hardware."""
-        try:
-            # Clean up GPIO first
-            GPIO.cleanup()
-            # Reinitialize reader
-            logger.info("Reinitializing RFID reader...")
-            time.sleep(0.5)  # Give hardware time to reset
-            self.reader = SimpleMFRC522()
-        except Exception as e:
-            logger.error(f"Error resetting RFID reader: {e}")
+                return self._handle_read_error(e, "read_no_block")
     
     def read_with_timeout(self, timeout=30, check_interval=0.1, max_retries=3):
         """
@@ -129,7 +144,7 @@ class RFIDReader:
                     # Try to read tag
                     id_val, text = self.reader.read_no_block()
                     if id_val is not None:
-                        logger.info(f"Successfully read RFID tag: {id_val}")
+                        self._update_success_metrics(id_val)
                         return id_val, text
                 except Exception as e:
                     logger.error(f"RFID read error: {e}")
