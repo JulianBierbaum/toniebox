@@ -15,7 +15,7 @@ github:
 <br>
 
 - run `uv venv` to create a virtual environment
-- in the venv run `uv run` to install dependencies
+- in the venv run `uv sync` to install dependencies
 - in the `raspi-config` enable `Interface->SPI` and `Interface->I2C`
 
 #### Watchdog script
