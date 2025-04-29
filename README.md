@@ -3,7 +3,7 @@ Toniebox project using a Raspberry PI 4B
 Setup is using Raspberry PI OS Lite (64-Bit)
 
 github:
-```git clone https://github.com/JulianBierbaum/toniebox.git```
+`git clone https://github.com/JulianBierbaum/toniebox.git`
 
 ### Debugging
 - logs are automatically created under the `logs` directory
@@ -14,11 +14,13 @@ github:
 - if the setup file is not working you can follow the steps below:
 <br>
 
-- in the ```raspi-config``` enable ```Interface->SPI``` and ```Interface->I2C```
+- run `uv venv` to create a virtual environment
+- in the venv run `uv run` to install dependencies
+- in the `raspi-config` enable `Interface->SPI` and `Interface->I2C`
 
 #### Watchdog script
-- go to ```/etc/systemd/system```
-- create ```audio_player.service``` file
+- go to `/etc/systemd/system`
+- create `audio_player.service` file
 
 Code:
 ```sh
@@ -48,16 +50,16 @@ WantedBy=multi-user.target
 
 <br>
 
-- reload the systemd configuration with ```sudo systemctl daemon-reload```
-- enable the service to start on boot ```sudo systemctl enable audio_player.service```
-- start the service immediately (for testing) ```sudo systemctl start audio_player.service```
-- check with ```systemctl status audio_player.service```
-- run ```sudo usermod -a -G audio pi```
+- reload the systemd configuration with `sudo systemctl daemon-reload`
+- enable the service to start on boot `sudo systemctl enable audio_player.service`
+- start the service immediately (for testing) `sudo systemctl start audio_player.service`
+- check with `systemctl status audio_player.service`
+- run `sudo usermod -a -G audio pi`
 
 #### Auto-mount USB
 
-- get USB_UUID with ```sudo blkid /dev/sda1```
-- open ```/etc/fstab```
+- get USB_UUID with `sudo blkid /dev/sda1`
+- open `/etc/fstab`
 
 Code:
 ``````bash

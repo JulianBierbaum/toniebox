@@ -1,7 +1,0 @@
-pygame
-mfrc522
-sqlalchemy
-gpiozero
-luma.core
-luma.oled
-lgpio

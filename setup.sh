@@ -1,17 +1,24 @@
 #!/bin/bash
-# Toniebox Setup Script for Raspberry Pi 4B
+# Toniebox Setup Script for Raspberry Pi 4B (Modern Version with UV)
 # This script automates the setup process for the Toniebox project
-
 # Exit on any error
 set -e
 
 echo "<--- Toniebox Setup --->"
 
-# Create virtual environment and install requirements
-echo "Setting up Python virtual environment..."
-python -m venv .venv
+# Check if uv is installed, install if necessary
+if ! command -v uv &> /dev/null; then
+    echo "Installing UV package manager..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    # Add to PATH if not already there
+    export PATH="$HOME/.cargo/bin:$PATH"
+fi
+
+# Create virtual environment and install dependencies with UV
+echo "Setting up Python virtual environment with UV..."
+uv venv
 source .venv/bin/activate
-pip install -r requirements.txt
+uv pip sync pyproject.toml
 
 # Enable SPI and I2C interfaces
 echo "Enabling SPI and I2C interfaces..."
@@ -57,7 +64,6 @@ sudo systemctl enable audio_player.service
 echo "Setting up USB auto-mount..."
 echo "Getting USB UUID..."
 USB_UUID=$(sudo blkid /dev/sda1 | awk -F'"' '{print $2}')
-
 if [ -z "$USB_UUID" ]; then
     echo "Warning: Could not detect USB device. Please make sure it's connected and try again."
     echo "You'll need to manually update /etc/fstab with the correct UUID."
@@ -65,7 +71,6 @@ else
     echo "USB UUID detected: $USB_UUID"
     # Create mount point if it doesn't exist
     sudo mkdir -p /media/pi
-
     # Add entry to fstab
     echo "Updating fstab..."
     if ! grep -q "$USB_UUID" /etc/fstab; then
@@ -87,7 +92,6 @@ fi
 if [ -f "$CONFIG_FILE" ]; then
     # Comment out dtparam=audio=on
     sudo sed -i 's/^dtparam=audio=on/#dtparam=audio=on/' $CONFIG_FILE
-
     # Add HiFiBerry DAC overlay if not already present
     if ! grep -q "dtoverlay=hifiberry-dac" $CONFIG_FILE; then
         echo "dtoverlay=hifiberry-dac" | sudo tee -a $CONFIG_FILE

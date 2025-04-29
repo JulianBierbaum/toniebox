@@ -1,0 +1,19 @@
+[project]
+name = "toniebox"
+version = "0.7.0"
+description = "Toniebox project for Raspberry Pi"
+requires-python = ">=3.9"
+
+dependencies = [
+    "pygame>=2.6.1",
+    "mfrc522>=0.0.7",
+    "sqlalchemy>=2.0.40",
+    "gpiozero>=2.0.1",
+    "luma.core>=2.4.2",
+    "luma.oled>=3.14.0",
+    "lgpio>=0.2.2.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
