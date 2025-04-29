@@ -10,8 +10,7 @@ dependencies = [
     "sqlalchemy>=2.0.40",
     "gpiozero>=2.0.1",
     "luma.core>=2.4.2",
-    "luma.oled>=3.14.0",
-    "lgpio>=0.2.2.0",
+    "luma.oled>=3.14.0"
 ]
 
 [build-system]
