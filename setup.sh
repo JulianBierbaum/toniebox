@@ -18,7 +18,7 @@ fi
 echo "Setting up Python virtual environment with UV..."
 uv venv
 source .venv/bin/activate
-uv run
+uv sync
 
 # Enable SPI and I2C interfaces
 echo "Enabling SPI and I2C interfaces..."
