@@ -71,18 +71,21 @@ class OLEDMenu:
     def handle_rotation(self):
         """
         Handle rotary encoder rotation events.
+        Only process rotation in menus where it makes sense.
         """
+        if self.current_menu == "currently_playing" or self.current_menu == "add_update":
+            self.encoder.steps = 0
+            return
+
         # Get the current state of the encoder
         steps = self.encoder.steps
         if steps != 0:
-            logger.debug(f"Encoder rotated: {steps} steps")
-            # Direction-based navigation
             if steps > 0:
                 for _ in range(steps):
-                    self._change_selection(1)  # Down/increment
+                    self._change_selection(1)  # Down
             else:
                 for _ in range(abs(steps)):
-                    self._change_selection(-1)  # Up/decrement
+                    self._change_selection(-1)  # Up
             
             # Reset the encoder steps after processing
             self.encoder.steps = 0
@@ -91,7 +94,7 @@ class OLEDMenu:
     def _change_selection(self, direction):
         """
         Change selection based on direction.
-        
+
         Args:
             direction (int): 1 for increment, -1 for decrement
         """
@@ -242,6 +245,9 @@ class OLEDMenu:
             self.display_yes_no_menu()
         elif self.current_menu == "files" and self.file_options:
             self.display_file_menu(self.file_options)
+        elif self.current_menu == "currently_playing":
+            current = self.get_current_audio() if hasattr(self, 'get_current_audio') else None
+            self.display_current_audio(current)
             
     def wait_for_confirmation(self, timeout=None):
         """

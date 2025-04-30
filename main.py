@@ -74,15 +74,18 @@ def main():
                 if oled_menu.menu_selection == 0:  # Currently Playing
                     logger.debug("Entering Currently Playing menu")
                     oled_menu.option_confirmed = False
+                    oled_menu.current_menu = "currently_playing"
                     while not oled_menu.option_confirmed and not shutdown_event.is_set():
                         current = audio_player.get_current_audio()
                         oled_menu.display_current_audio(current)
                         time.sleep(0.5)
+                    oled_menu.current_menu = "main"
 
                 elif oled_menu.menu_selection == 1:  # Add/Update Audio
                     logger.info("Entering Add/Update Audio menu")
                     audio_player.stop()
                     audio_player.reader_active = False
+                    oled_menu.current_menu = "add_update"
 
                     try:
                         oled_menu.display_message("Hold RFID chip to reader")
@@ -152,6 +155,7 @@ def main():
                     finally:
                         logger.debug("Resetting reader active state")
                         audio_player.reader_active = True
+                        oled_menu.current_menu = "main"
 
                 elif oled_menu.menu_selection == 2:  # List Audios
                     logger.debug("Entering List Audios menu")
