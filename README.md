@@ -1,15 +1,14 @@
-# **Toniebox**
-Toniebox project using a Raspberry PI 4B
-Setup is using Raspberry PI OS Lite (64-Bit)
+# **/ Toniebox**
+- Toniebox project using a Raspberry PI 4B
+- setup is using Raspberry PI OS Lite (64-Bit)
+<br>
+- GitHub: `git clone https://github.com/JulianBierbaum/toniebox.git`
 
-github:
-`git clone https://github.com/JulianBierbaum/toniebox.git`
-
-### Debugging
+### // Debugging
 - logs are automatically created under the `logs` directory
 - you can live-watch the logs using the `tail -f logs/rfid_player.log` commmand
 
-### Setup
+### // Setup
 - the `setup.sh` script needs to be run in the toniebox directory the first time the player is used after that it is no longer neccesary
 - if the setup file is not working you can follow the steps below:
 <br>
@@ -17,7 +16,7 @@ github:
 - run `uv sync` to install dependencies
 - in the `raspi-config` enable `Interface->SPI` and `Interface->I2C`
 
-#### Watchdog script
+#### /// Watchdog script
 - go to `/etc/systemd/system`
 - create `audio_player.service` file
 
@@ -55,7 +54,7 @@ WantedBy=multi-user.target
 - check with `systemctl status audio_player.service`
 - run `sudo usermod -a -G audio pi`
 
-#### Auto-mount USB
+#### /// Auto-mount USB
 
 - get USB_UUID with `sudo blkid /dev/sda1`
 - open `/etc/fstab`
@@ -65,7 +64,7 @@ Code:
 UUID=USB_UUID /media/pi vfat defaults,noatime,nofail 0 2
 ``````
 
-#### ALSA config
+#### /// ALSA config
 Set up ALSA (Advanced Linux Sound Architecture) to work with an external speaker through the MAX98357A amplifier.
 
 - open `/boot/firmware/config.txt`
