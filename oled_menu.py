@@ -44,7 +44,7 @@ class OLEDMenu:
         except Exception as e:
             logger.error(f"Failed to initialize OLED display: {e}")
             raise
-        
+
         # Menu state
         self.menu_options = ["Currently Playing", "Add/Update Audio", "List Audios"]
         self.menu_selection = 0
@@ -54,7 +54,7 @@ class OLEDMenu:
         self.file_options = []
         self.option_confirmed = False
         self.current_menu = "main"
-        
+
         # Input controls setup
         try:
             self.encoder = RotaryEncoder(encoder_clk, encoder_dt, bounce_time=0.05)
@@ -104,16 +104,6 @@ class OLEDMenu:
         elif self.current_menu == "files" and self.file_options:
             self.file_selection = (self.file_selection + direction) % len(self.file_options)
             logger.debug(f"File selection changed to: {self.file_options[self.file_selection]}")
-
-    def on_up_pressed(self):
-        """Handle upward navigation (legacy method for compatibility)"""
-        self._change_selection(-1)
-        self.update_display()
-
-    def on_down_pressed(self):
-        """Handle downward navigation (legacy method for compatibility)"""
-        self._change_selection(1)
-        self.update_display()
 
     def on_confirm_pressed(self):
         """Handle confirmation"""
