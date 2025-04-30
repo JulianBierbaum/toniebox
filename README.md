@@ -7,7 +7,7 @@ github:
 
 ### Debugging
 - logs are automatically created under the `logs` directory
-- you can live-watch the logs using the `tail -f rfid_player.log` commmand
+- you can live-watch the logs using the `tail -f logs/rfid_player.log` commmand
 
 ### Setup
 - the `setup.sh` script needs to be run in the toniebox directory the first time the player is used after that it is no longer neccesary
