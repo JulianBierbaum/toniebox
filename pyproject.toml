@@ -12,7 +12,3 @@ dependencies = [
     "luma.core>=2.4.2",
     "luma.oled>=3.14.0"
 ]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
