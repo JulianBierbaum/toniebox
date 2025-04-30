@@ -14,8 +14,8 @@ if ! command -v uv &> /dev/null; then
     export PATH="$HOME/.cargo/bin:$PATH"
 fi
 
-# Create virtual environment and install dependencies with UV
-echo "Setting up Python virtual environment with UV..."
+# Install dependencies with UV
+echo "Installing dependencies..."
 uv sync
 
 # Enable SPI and I2C interfaces

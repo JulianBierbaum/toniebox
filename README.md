@@ -14,8 +14,7 @@ github:
 - if the setup file is not working you can follow the steps below:
 <br>
 
-- run `uv venv` to create a virtual environment
-- in the venv run `uv sync` to install dependencies
+- run `uv sync` to install dependencies
 - in the `raspi-config` enable `Interface->SPI` and `Interface->I2C`
 
 #### Watchdog script
