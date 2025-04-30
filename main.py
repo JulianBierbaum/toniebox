@@ -23,11 +23,13 @@ logger = get_logger(__name__)
 
 shutdown_event = th.Event()
 
+
 def signal_handler(sig, frame):
     """Handle shutdown signals."""
     logger.info("Received shutdown signal, initiating graceful shutdown...")
     shutdown_event.set()
     sys.exit(0)
+
 
 def main():
     """Main application entry point."""
@@ -52,7 +54,7 @@ def main():
         player_thread = th.Thread(
             target=audio_player.start_player,
             args=(rfid_reader, shutdown_event),
-            daemon=True
+            daemon=True,
         )
         player_thread.start()
 
@@ -212,6 +214,7 @@ def main():
     except Exception as e:
         logger.critical(f"Fatal initialization error: {str(e)}", exc_info=True)
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

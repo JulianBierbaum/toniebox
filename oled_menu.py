@@ -16,19 +16,20 @@ from logger import get_logger
 
 logger = get_logger(__name__)
 
+
 class OLEDMenu:
     """
     A class to handle the OLED display and menu system with rotary encoder.
-    
-    This class provides methods to display and navigate menus on the OLED 
+
+    This class provides methods to display and navigate menus on the OLED
     screen using a KY-040 rotary encoder for navigation and its switch
     for confirmation.
     """
-    
+
     def __init__(self, encoder_clk=17, encoder_dt=20, confirm_pin=16):
         """
         Initialize the OLED display and input controls.
-        
+
         Args:
             encoder_clk (int): GPIO pin for encoder CLK (rotary pin A)
             encoder_dt (int): GPIO pin for encoder DT (rotary pin B)
@@ -59,7 +60,7 @@ class OLEDMenu:
         try:
             self.encoder = RotaryEncoder(encoder_clk, encoder_dt, bounce_time=0.05)
             self.confirm = Button(confirm_pin, bounce_time=0.05)
-            
+
             # Event handlers
             self.encoder.when_rotated = self.handle_rotation
             self.confirm.when_pressed = self.on_confirm_pressed
@@ -86,7 +87,7 @@ class OLEDMenu:
             else:
                 for _ in range(abs(steps)):
                     self._change_selection(-1)  # Up
-            
+
             # Reset the encoder steps after processing
             self.encoder.steps = 0
             self.update_display()
@@ -116,7 +117,7 @@ class OLEDMenu:
     def _draw_menu_items(self, draw, items, selection, start_y=16, prefix_selected=">", prefix_normal=" "):
         """
         Draw a list of menu items with selection indicator.
-        
+
         Args:
             draw: PIL drawing context
             items: List of items to display
@@ -128,9 +129,9 @@ class OLEDMenu:
         # For file menu with many items, show a sliding window around the selection
         if len(items) > 3 and self.current_menu == "files":
             start_idx = max(0, min(selection, len(items) - 3))
-            visible_items = items[start_idx:start_idx + 3]
+            visible_items = items[start_idx : start_idx + 3]
             selection_offset = selection - start_idx
-            
+
             for i, item in enumerate(visible_items):
                 y_pos = start_y + (i * 12)
                 prefix = prefix_selected if i == selection_offset else prefix_normal
@@ -163,7 +164,7 @@ class OLEDMenu:
     def display_file_menu(self, files):
         """
         Display a menu of files on the OLED screen.
-        
+
         Args:
             files (list): List of filenames to display
         """
@@ -175,7 +176,7 @@ class OLEDMenu:
     def display_current_audio(self, current_audio):
         """
         Display the currently playing audio on the OLED screen.
-        
+
         Args:
             current_audio (str or None): Currently playing audio filename or None
         """
@@ -195,7 +196,7 @@ class OLEDMenu:
     def display_message(self, message):
         """
         Display a message on the OLED screen.
-        
+
         Args:
             message (str): Message to display
         """
@@ -209,32 +210,32 @@ class OLEDMenu:
     def _wrap_text_to_lines(self, text, max_chars=18):
         """
         Split text into lines with word wrapping.
-        
+
         Args:
             text (str): Text to wrap
             max_chars (int): Maximum characters per line
-            
+
         Returns:
             list: List of wrapped text lines
         """
         words = text.split()
         lines = []
         current_line = []
-        
+
         for word in words:
             # If adding this word exceeds max length
-            if len(' '.join(current_line + [word])) <= max_chars:
+            if len(" ".join(current_line + [word])) <= max_chars:
                 current_line.append(word)
             else:
                 # Add the current line and start a new one
                 if current_line:
-                    lines.append(' '.join(current_line))
+                    lines.append(" ".join(current_line))
                 current_line = [word]
-        
+
         # Add the last line if not empty
         if current_line:
-            lines.append(' '.join(current_line))
-            
+            lines.append(" ".join(current_line))
+
         return lines
 
     def update_display(self):
@@ -246,16 +247,16 @@ class OLEDMenu:
         elif self.current_menu == "files" and self.file_options:
             self.display_file_menu(self.file_options)
         elif self.current_menu == "currently_playing":
-            current = self.get_current_audio() if hasattr(self, 'get_current_audio') else None
+            current = self.get_current_audio() if hasattr(self, "get_current_audio") else None
             self.display_current_audio(current)
-            
+
     def wait_for_confirmation(self, timeout=None):
         """
         Wait for confirmation with optional timeout.
-        
+
         Args:
             timeout (float, optional): Maximum time to wait in seconds
-            
+
         Returns:
             bool: True if confirmed, False if timed out
         """
