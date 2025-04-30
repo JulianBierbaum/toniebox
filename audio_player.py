@@ -40,16 +40,6 @@ class AudioPlayer:
         self.reader_active = True
         self.media_path = media_path
         self.audio_thread = None
-
-        self._init_default_record()
-    
-    def _init_default_record(self):
-        """Initialize the database with a default record if it's empty."""
-        if not self.session.query(RFIDAudio).first():
-            logger.info("Initializing database with default record")
-            record = RFIDAudio(id="631430949643", file="outro.mp3")
-            self.session.add(record)
-            self.session.commit()
     
     def play_file(self, filename):
         """Play an audio file directly by filename"""
