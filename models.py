@@ -4,8 +4,8 @@ Database models for the RFID Audio Player application.
 This module defines the database schema and provides connection setup.
 """
 
-from sqlalchemy import create_engine, Column, String, Integer
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy import Column, Integer, String, create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Database configuration
 Base = declarative_base()

@@ -5,10 +5,11 @@ This module provides a wrapper around the SimpleMFRC522 library
 for reading RFID tags.
 """
 
-from mfrc522 import SimpleMFRC522
 import time
 from threading import Event, Lock
+
 import RPi.GPIO as GPIO
+from mfrc522 import SimpleMFRC522
 
 from logger import get_logger
 
@@ -62,7 +63,9 @@ class RFIDReader:
 
         # If we get too many consecutive errors, reset the reader
         if self.consecutive_errors >= self.max_consecutive_errors:
-            logger.warning(f"Too many consecutive errors ({self.consecutive_errors}), resetting reader")
+            logger.warning(
+                f"Too many consecutive errors ({self.consecutive_errors}), resetting reader"
+            )
             self._reset_reader()
             self.consecutive_errors = 0
 

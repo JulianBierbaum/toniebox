@@ -6,6 +6,7 @@ and a rotary encoder for navigation.
 """
 
 import time
+
 from gpiozero import Button, RotaryEncoder
 from luma.core.interface.serial import i2c
 from luma.core.render import canvas
@@ -74,7 +75,10 @@ class OLEDMenu:
         Handle rotary encoder rotation events.
         Only process rotation in menus where it makes sense.
         """
-        if self.current_menu == "currently_playing" or self.current_menu == "add_update":
+        if (
+            self.current_menu == "currently_playing"
+            or self.current_menu == "add_update"
+        ):
             self.encoder.steps = 0
             return
 
@@ -100,21 +104,35 @@ class OLEDMenu:
             direction (int): 1 for increment, -1 for decrement
         """
         if self.current_menu == "main":
-            self.menu_selection = (self.menu_selection + direction) % len(self.menu_options)
-            logger.debug(f"Main menu selection changed to: {self.menu_options[self.menu_selection]}")
+            self.menu_selection = (self.menu_selection + direction) % len(
+                self.menu_options
+            )
+            logger.debug(
+                f"Main menu selection changed to: {self.menu_options[self.menu_selection]}"
+            )
         elif self.current_menu == "yes_no":
-            self.yes_no_selection = (self.yes_no_selection + direction) % len(self.yes_no_options)
-            logger.debug(f"Yes/No selection changed to: {self.yes_no_options[self.yes_no_selection]}")
+            self.yes_no_selection = (self.yes_no_selection + direction) % len(
+                self.yes_no_options
+            )
+            logger.debug(
+                f"Yes/No selection changed to: {self.yes_no_options[self.yes_no_selection]}"
+            )
         elif self.current_menu == "files" and self.file_options:
-            self.file_selection = (self.file_selection + direction) % len(self.file_options)
-            logger.debug(f"File selection changed to: {self.file_options[self.file_selection]}")
+            self.file_selection = (self.file_selection + direction) % len(
+                self.file_options
+            )
+            logger.debug(
+                f"File selection changed to: {self.file_options[self.file_selection]}"
+            )
 
     def on_confirm_pressed(self):
         """Handle confirmation"""
         self.option_confirmed = True
         logger.debug(f"Selection confirmed in menu: {self.current_menu}")
 
-    def _draw_menu_items(self, draw, items, selection, start_y=16, prefix_selected=">", prefix_normal=" "):
+    def _draw_menu_items(
+        self, draw, items, selection, start_y=16, prefix_selected=">", prefix_normal=" "
+    ):
         """
         Draw a list of menu items with selection indicator.
 
@@ -159,7 +177,9 @@ class OLEDMenu:
         with canvas(self.device) as draw:
             draw.text((0, 0), "Overwrite?", font=self.font, fill="white")
             draw.text((0, 16), "Entry exists", font=self.font, fill="white")
-            self._draw_menu_items(draw, self.yes_no_options, self.yes_no_selection, start_y=32)
+            self._draw_menu_items(
+                draw, self.yes_no_options, self.yes_no_selection, start_y=32
+            )
 
     def display_file_menu(self, files):
         """
@@ -186,7 +206,9 @@ class OLEDMenu:
             if current_audio:
                 if len(current_audio) > 18:
                     draw.text((0, 16), current_audio[:18], font=self.font, fill="white")
-                    draw.text((0, 28), current_audio[18:36], font=self.font, fill="white")
+                    draw.text(
+                        (0, 28), current_audio[18:36], font=self.font, fill="white"
+                    )
                 else:
                     draw.text((0, 16), current_audio, font=self.font, fill="white")
             else:
@@ -247,7 +269,9 @@ class OLEDMenu:
         elif self.current_menu == "files" and self.file_options:
             self.display_file_menu(self.file_options)
         elif self.current_menu == "currently_playing":
-            current = self.get_current_audio() if hasattr(self, "get_current_audio") else None
+            current = (
+                self.get_current_audio() if hasattr(self, "get_current_audio") else None
+            )
             self.display_current_audio(current)
 
     def wait_for_confirmation(self, timeout=None):

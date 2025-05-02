@@ -7,16 +7,16 @@ with an OLED menu for configuration.
 This is the main entry point for the application.
 """
 
-import threading as th
-import time
 import signal
 import sys
+import threading as th
+import time
 
-from models import init_db
 from audio_player import AudioPlayer
+from logger import get_logger
+from models import init_db
 from oled_menu import OLEDMenu
 from rfid_reader import RFIDReader
-from logger import get_logger
 
 # Initialize logger
 logger = get_logger(__name__)
@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 shutdown_event = th.Event()
 
 
-def signal_handler(sig, frame):
+def signal_handler():
     """Handle shutdown signals."""
     logger.info("Received shutdown signal, initiating graceful shutdown...")
     shutdown_event.set()
@@ -77,7 +77,9 @@ def main():
                     logger.debug("Entering Currently Playing menu")
                     oled_menu.option_confirmed = False
                     oled_menu.current_menu = "currently_playing"
-                    while not oled_menu.option_confirmed and not shutdown_event.is_set():
+                    while (
+                        not oled_menu.option_confirmed and not shutdown_event.is_set()
+                    ):
                         current = audio_player.get_current_audio()
                         oled_menu.display_current_audio(current)
                         time.sleep(0.5)
@@ -108,15 +110,22 @@ def main():
                         logger.info(f"Detected RFID tag: {id_val}")
                         existing = audio_player.get_file(str(id_val))
                         if existing:
-                            oled_menu.display_message(f"Tag ID: {id_val}\nCurrent: {existing}")
-                            logger.debug(f"Existing mapping found for tag {id_val}: {existing}")
+                            oled_menu.display_message(
+                                f"Tag ID: {id_val}\nCurrent: {existing}"
+                            )
+                            logger.debug(
+                                f"Existing mapping found for tag {id_val}: {existing}"
+                            )
                             time.sleep(2)
 
                             oled_menu.current_menu = "yes_no"
                             oled_menu.display_yes_no_menu()
                             oled_menu.option_confirmed = False
 
-                            while not oled_menu.option_confirmed and not shutdown_event.is_set():
+                            while (
+                                not oled_menu.option_confirmed
+                                and not shutdown_event.is_set()
+                            ):
                                 time.sleep(0.1)
 
                             if oled_menu.yes_no_selection == 1:  # No
@@ -137,7 +146,10 @@ def main():
                         oled_menu.display_file_menu(files)
                         oled_menu.option_confirmed = False
 
-                        while not oled_menu.option_confirmed and not shutdown_event.is_set():
+                        while (
+                            not oled_menu.option_confirmed
+                            and not shutdown_event.is_set()
+                        ):
                             time.sleep(0.1)
 
                         if shutdown_event.is_set():
@@ -147,7 +159,9 @@ def main():
                         logger.info(f"Mapping tag {id_val} to file {selected_file}")
                         audio_player.add_file_to_db(str(id_val), selected_file)
 
-                        oled_menu.display_message(f"Added: {selected_file}\nID: {str(id_val)}")
+                        oled_menu.display_message(
+                            f"Added: {selected_file}\nID: {str(id_val)}"
+                        )
                         time.sleep(2)
 
                     except Exception as e:
@@ -169,7 +183,10 @@ def main():
                         oled_menu.file_selection = 0
                         oled_menu.option_confirmed = False
 
-                        while not oled_menu.option_confirmed and not shutdown_event.is_set():
+                        while (
+                            not oled_menu.option_confirmed
+                            and not shutdown_event.is_set()
+                        ):
                             oled_menu.display_file_menu(files)
                             time.sleep(0.1)
 
@@ -185,7 +202,10 @@ def main():
                             logger.debug("Starting file playback")
                             audio_player.play_file(selected_file)
                             oled_menu.option_confirmed = False
-                            while not oled_menu.option_confirmed and not shutdown_event.is_set():
+                            while (
+                                not oled_menu.option_confirmed
+                                and not shutdown_event.is_set()
+                            ):
                                 current = audio_player.get_current_audio()
                                 oled_menu.display_current_audio(current)
                                 time.sleep(0.5)

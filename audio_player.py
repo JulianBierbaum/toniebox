@@ -5,14 +5,15 @@ This module handles audio file playback and management of audio files
 associated with RFID tags.
 """
 
-import pygame as pg
+import os
 import threading as th
 import time
-import os
-from threading import Lock, Event
+from threading import Event, Lock
 
-from models import Session, RFIDAudio
+import pygame as pg
+
 from logger import get_logger
+from models import RFIDAudio, Session
 
 logger = get_logger(__name__)
 
@@ -81,7 +82,9 @@ class AudioPlayer:
             # Start new audio playback
             self.playback_event.clear()
             self.audio_thread = th.Thread(target=self._play_audio, args=(audio_file,))
-            self.audio_thread.daemon = True # Make thread daemon so it exits when main program exits
+            self.audio_thread.daemon = (
+                True  # Make thread daemon so it exits when main program exits
+            )
             self.audio_thread.start()
 
     def _play_audio(self, audio_file):
@@ -177,7 +180,9 @@ class AudioPlayer:
         """
         record = self.session.query(RFIDAudio).filter_by(id=file_id).first()
         if record:
-            logger.info(f"Updating RFID mapping: ID {file_id} from {record.file} to {file_name}")
+            logger.info(
+                f"Updating RFID mapping: ID {file_id} from {record.file} to {file_name}"
+            )
             record.file = file_name
         else:
             logger.info(f"Adding new RFID mapping: ID {file_id} to {file_name}")
