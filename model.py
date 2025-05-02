@@ -6,10 +6,14 @@ This module defines the database schema and provides connection setup.
 
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Database configuration
 Base = declarative_base()
-DATABASE_URL = "sqlite:///rfid_audio.db"
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 class RFIDAudio(Base):

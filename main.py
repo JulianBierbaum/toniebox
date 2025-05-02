@@ -14,7 +14,7 @@ import time
 
 from audio_player import AudioPlayer
 from logger import get_logger
-from models import init_db
+from model import init_db
 from oled_menu import OLEDMenu
 from rfid_reader import RFIDReader
 

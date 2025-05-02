@@ -9,13 +9,16 @@ import os
 import threading as th
 import time
 from threading import Event, Lock
+from dotenv import load_dotenv
 
 import pygame as pg
 
 from logger import get_logger
-from models import RFIDAudio, Session
+from model import RFIDAudio, Session
 
 logger = get_logger(__name__)
+
+load_dotenv()
 
 
 class AudioPlayer:
@@ -26,7 +29,7 @@ class AudioPlayer:
     associated with RFID tags.
     """
 
-    def __init__(self, media_path="/media/pi"):
+    def __init__(self, media_path=os.getenv("MEDIA_PATH")):
         """
         Initialize the audio player.
 

@@ -4,6 +4,7 @@
 <br>
 
 - GitHub: `git clone https://github.com/JulianBierbaum/toniebox.git`
+- clone into home dir
 
 ### // Debugging
 - logs are automatically created under the `logs` directory

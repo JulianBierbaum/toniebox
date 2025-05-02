@@ -6,6 +6,7 @@ and a rotary encoder for navigation.
 """
 
 import time
+import os
 
 from gpiozero import Button, RotaryEncoder
 from luma.core.interface.serial import i2c
@@ -14,6 +15,9 @@ from luma.oled.device import sh1106
 from PIL import ImageFont
 
 from logger import get_logger
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = get_logger(__name__)
 
@@ -27,7 +31,12 @@ class OLEDMenu:
     for confirmation.
     """
 
-    def __init__(self, encoder_clk=17, encoder_dt=20, confirm_pin=16):
+    def __init__(
+        self,
+        encoder_clk=os.getenv("ENCODER_CLK"),
+        encoder_dt=os.getenv("ENCODER_DT"),
+        confirm_pin=os.getenv("ENCODER_CONFIRM"),
+    ):
         """
         Initialize the OLED display and input controls.
 
@@ -59,8 +68,11 @@ class OLEDMenu:
 
         # Input controls setup
         try:
-            self.encoder = RotaryEncoder(encoder_clk, encoder_dt, bounce_time=0.05)
-            self.confirm = Button(confirm_pin, bounce_time=0.05)
+            self.encoder_bounce_time = os.getenv("ENCODER_BOUNCE_TIME")
+            self.encoder = RotaryEncoder(
+                encoder_clk, encoder_dt, bounce_time=self.encoder_bounce_time
+            )
+            self.confirm = Button(confirm_pin, bounce_time=self.encoder_bounce_time)
 
             # Event handlers
             self.encoder.when_rotated = self.handle_rotation
