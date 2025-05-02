@@ -229,7 +229,7 @@ def main():
         finally:
             logger.info("Cleaning up resources")
             audio_player.stop()
-            # oled_menu.shutdown()
+            oled_menu.shutdown()
             shutdown_event.set()
 
     except Exception as e:
