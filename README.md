@@ -8,13 +8,13 @@
 
 ### // Debugging
 - logs are automatically created under the `logs` directory
-- you can live-watch the logs using the `tail -f logs/rfid_player.log` commmand
+- you can live-watch the logs using `tail -f logs/rfid_player.log`
 
 ### // Setup
 - the `setup.sh` script needs to be run in the toniebox directory the first time the player is used after that it is no longer neccesary
 - if the setup file is not working you can follow the steps below:
-<br>
 
+#### /// General
 - run `uv sync` to install dependencies
 - in the `raspi-config` enable `Interface->SPI` and `Interface->I2C`
 
@@ -52,7 +52,7 @@ WantedBy=multi-user.target
 
 - reload the systemd configuration with `sudo systemctl daemon-reload`
 - enable the service to start on boot `sudo systemctl enable audio_player.service`
-- start the service immediately (for testing) `sudo systemctl start audio_player.service`
+- (for testing) start the service immediately `sudo systemctl start audio_player.service`
 - check with `systemctl status audio_player.service`
 - run `sudo usermod -a -G audio pi`
 
