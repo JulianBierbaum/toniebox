@@ -72,7 +72,9 @@ class OLEDMenu:
             self.encoder = RotaryEncoder(
                 encoder_clk, encoder_dt, bounce_time=float(self.encoder_bounce_time)
             )
-            self.confirm = Button(confirm_pin, bounce_time=float(self.encoder_bounce_time))
+            self.confirm = Button(
+                confirm_pin, bounce_time=float(self.encoder_bounce_time)
+            )
 
             # Event handlers
             self.encoder.when_rotated = self.handle_rotation
