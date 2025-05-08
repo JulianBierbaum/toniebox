@@ -48,7 +48,7 @@ class AudioPlayer:
         self.reader_active = True
         self.media_path = media_path
         self.audio_thread = None
-    
+
     def _initialize_audio(self, device):
         """
         Internal helper to set environment and initialize mixer.
@@ -71,7 +71,6 @@ class AudioPlayer:
             os.environ["AUDIODEV"] = "hw:1,0"
 
         pg.mixer.init()
-
 
     def play_file(self, filename):
         """Play an audio file directly by filename"""
