@@ -77,6 +77,7 @@ class OLEDMenu:
         self.audio_menu_options = ["Back", "Volume", "Output Device"]
         self.audio_menu_selection = 1
         self.volume_value = int(os.getenv("DEFAULT_VOLUME"))
+        logger.debug(f"Loaded DEFAULT_VOLUME: {os.getenv('DEFAULT_VOLUME')}")
         self.adjusting_volume = False
 
         # Input controls setup
@@ -368,11 +369,12 @@ class OLEDMenu:
                 prefix = ">" if i == self.audio_menu_selection else " "
                 draw.text((0, y_pos), f"{prefix} {item}", font=self.font, fill="white")
 
-            # Draw volume slider if that option is selected
+            # Draw volume slider
             if self.audio_menu_selection == 1:
                 # Volume slider (48 pixels wide)
                 slider_y = 16 + 12 + 4
                 slider_width = 48
+
                 # Calculate filled width based on volume value
                 filled_width = int((self.volume_value / 100) * slider_width)
 
