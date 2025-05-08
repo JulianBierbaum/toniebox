@@ -38,19 +38,9 @@ class AudioPlayer:
         """
         logger.info("Initializing AudioPlayer")
 
-        # Set default audio output device to speaker
-        self.current_output_device = os.getenv("DEFAULT_AUDIO_DEVICE")
+        self.current_output_device = os.getenv("DEFAULT_AUDIO_DEVICE", "speaker")
+        self._initialize_audio(self.current_output_device)
 
-        # Set the SDL audio driver environment variable
-        if self.current_output_device == "aux":
-            # Use ALSA driver with built-in audio device
-            os.environ["SDL_AUDIODRIVER"] = "alsa"
-            os.environ["AUDIODEV"] = "default"
-        else:  # speaker
-            os.environ["SDL_AUDIODRIVER"] = "alsa"
-            os.environ["AUDIODEV"] = "hw:0,0"  # First device for HiFiBerry
-
-        pg.mixer.init()
         self.session = Session()
         self.audio_lock = Lock()
         self.current_audio = None
@@ -58,6 +48,30 @@ class AudioPlayer:
         self.reader_active = True
         self.media_path = media_path
         self.audio_thread = None
+    
+    def _initialize_audio(self, device):
+        """
+        Internal helper to set environment and initialize mixer.
+        """
+        logger.info(f"Initializing audio for device: {device}")
+
+        # Stop and quit mixer if it's already running
+        try:
+            if pg.mixer.get_init():
+                pg.mixer.quit()
+        except Exception:
+            pass
+
+        # Set environment before reinitializing mixer
+        if device == "aux":
+            os.environ["SDL_AUDIODRIVER"] = "alsa"
+            os.environ["AUDIODEV"] = "hw:0,0"
+        else:  # speaker
+            os.environ["SDL_AUDIODRIVER"] = "alsa"
+            os.environ["AUDIODEV"] = "hw:1,0"
+
+        pg.mixer.init()
+
 
     def play_file(self, filename):
         """Play an audio file directly by filename"""
@@ -229,32 +243,11 @@ class AudioPlayer:
         logger.info(f"Switching audio output to: {output_device}")
         try:
             self.stop()
-
-            pg.mixer.quit()
-
-            # Set the SDL audio driver environment variable
-            if output_device == "aux":
-                os.environ["SDL_AUDIODRIVER"] = "alsa"
-                os.environ["AUDIODEV"] = "hw:0,0"  # onboard 3.5mm
-            elif output_device == "speaker":
-                os.environ["SDL_AUDIODRIVER"] = "alsa"
-                os.environ["AUDIODEV"] = "hw:1,0"  # HiFiBerry
-
-            pg.mixer.init()
-
+            self._initialize_audio(output_device)
             self.current_output_device = output_device
-
-            logger.info(f"Audio output switched to {output_device}")
             return True
         except Exception as e:
             logger.error(f"Error switching audio output: {str(e)}")
-
-            # Try to recover by reinitializing with default settings
-            try:
-                pg.mixer.quit()
-                pg.mixer.init()
-            except Exception as e2:
-                logger.error(f"Recovery failed: {str(e2)}")
             return False
 
     def get_current_audio_device(self):
