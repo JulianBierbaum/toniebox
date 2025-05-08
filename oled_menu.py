@@ -379,11 +379,15 @@ class OLEDMenu:
                 draw.rectangle(
                     (50, slider_y, 50 + slider_width, slider_y + 6), outline="white"
                 )
-                draw.rectangle(
-                    (50, slider_y, 50 + filled_width, slider_y + 6),
-                    fill="white" if self.adjusting_volume else None,
-                )
 
+                if filled_width > 0:
+                    draw.rectangle(
+                        (50, slider_y, 50 + filled_width, slider_y + 6),
+                        fill="white" if self.adjusting_volume else "white",
+                        outline="white",
+                    )
+
+                # Show volume percentage
                 draw.text(
                     (105, slider_y),
                     f"{self.volume_value}%",

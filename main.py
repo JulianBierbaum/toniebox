@@ -248,16 +248,18 @@ def main():
                         # Wait for user input
                         time.sleep(0.1)
 
-                        # Process user selection
+                        # Process user selection when confirmed
                         if oled_menu.option_confirmed:
-                            # Handle the selected option
+                            logger.debug(
+                                f"Audio menu option confirmed: {oled_menu.audio_menu_selection}"
+                            )
+
                             if oled_menu.audio_menu_selection == 0:  # Back
                                 # Exit the menu
                                 logger.debug(
                                     "User selected Back, exiting Audio Settings"
                                 )
-                                oled_menu.current_menu = "main"
-                                break
+                                break  # This will exit the while loop
 
                             elif oled_menu.audio_menu_selection == 1:  # Volume
                                 # Toggle volume adjustment mode
@@ -280,6 +282,9 @@ def main():
 
                             elif oled_menu.audio_menu_selection == 2:  # Output Device
                                 # Toggle between speaker and aux
+                                oled_menu.audio_output_selection = (
+                                    oled_menu.audio_output_selection + 1
+                                ) % 2
                                 new_device = (
                                     "speaker"
                                     if oled_menu.audio_output_selection == 0
