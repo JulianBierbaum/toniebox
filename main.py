@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 shutdown_event = th.Event()
 
 
-def signal_handler(sig, frame):
+def signal_handler():
     """Handle shutdown signals."""
     logger.info("Received shutdown signal, initiating graceful shutdown...")
     shutdown_event.set()
@@ -244,9 +244,7 @@ def main():
                         break
 
                     new_device = (
-                        "speaker"
-                        if oled_menu.audio_output_selection == 0
-                        else "aux"
+                        "speaker" if oled_menu.audio_output_selection == 0 else "aux"
                     )
 
                     if new_device != current_device:
