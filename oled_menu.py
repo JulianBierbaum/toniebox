@@ -76,7 +76,7 @@ class OLEDMenu:
 
         self.audio_menu_options = ["Back", "Volume", "Output Device"]
         self.audio_menu_selection = 1
-        self.volume_value = 80
+        self.volume_value = int(os.getenv("DEFAULT_VOLUME"))
         self.adjusting_volume = False
 
         # Input controls setup
