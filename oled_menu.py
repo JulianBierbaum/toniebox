@@ -395,9 +395,9 @@ class OLEDMenu:
                     fill="white",
                 )
 
-            # Draw current output device if that option is selected
+            # Draw current output device
             if self.audio_menu_selection == 2:
                 current_device = self.audio_output_options[self.audio_output_selection]
                 draw.text(
-                    (60, 16 + 24), f"< {current_device} >", font=self.font, fill="white"
+                    (60, 30 + 24), f"< {current_device} >", font=self.font, fill="white"
                 )
