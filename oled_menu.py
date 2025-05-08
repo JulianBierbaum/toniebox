@@ -46,7 +46,6 @@ class OLEDMenu:
             confirm_pin (int): GPIO pin for encoder switch (confirm button)
         """
         logger.info("Initializing OLED menu system")
-        # Initialize OLED
         try:
             self.serial = i2c(port=1, address=0x3C)
             self.device = sh1106(self.serial)
@@ -57,7 +56,12 @@ class OLEDMenu:
             raise
 
         # Menu state
-        self.menu_options = ["Currently Playing", "Add/Update Audio", "List Audios"]
+        self.menu_options = [
+            "Currently Playing",
+            "Add/Update Audio",
+            "List Audios",
+            "Audio Output",
+        ]
         self.menu_selection = 0
         self.yes_no_options = ["Yes", "No"]
         self.yes_no_selection = 0
@@ -65,6 +69,10 @@ class OLEDMenu:
         self.file_options = []
         self.option_confirmed = False
         self.current_menu = "main"
+
+        # Audio output menu options
+        self.audio_output_options = ["Speaker", "AUX"]
+        self.audio_output_selection = 0
 
         # Input controls setup
         try:
@@ -137,6 +145,13 @@ class OLEDMenu:
             )
             logger.debug(
                 f"File selection changed to: {self.file_options[self.file_selection]}"
+            )
+        elif self.current_menu == "audio_output":
+            self.audio_output_selection = (
+                self.audio_output_selection + direction
+            ) % len(self.audio_output_options)
+            logger.debug(
+                f"Audio output selection changed to: {self.audio_output_options[self.audio_output_selection]}"
             )
 
     def on_confirm_pressed(self):
@@ -229,6 +244,15 @@ class OLEDMenu:
                 draw.text((0, 16), "No audio playing", font=self.font, fill="white")
             draw.text((0, 48), "Press OK to return", font=self.font, fill="white")
 
+    def display_audio_output_menu(self):
+        """Display the audio output selection menu on the OLED screen."""
+        logger.debug("Displaying audio output menu")
+        with canvas(self.device) as draw:
+            draw.text((0, 0), "Audio Output:", font=self.font, fill="white")
+            self._draw_menu_items(
+                draw, self.audio_output_options, self.audio_output_selection
+            )
+
     def display_message(self, message):
         """
         Display a message on the OLED screen.
@@ -287,6 +311,8 @@ class OLEDMenu:
                 self.get_current_audio() if hasattr(self, "get_current_audio") else None
             )
             self.display_current_audio(current)
+        elif self.current_menu == "audio_output":
+            self.display_audio_output_menu()
 
     def wait_for_confirmation(self, timeout=None):
         """

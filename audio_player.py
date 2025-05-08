@@ -37,6 +37,19 @@ class AudioPlayer:
             media_path (str): Path to the directory containing audio files
         """
         logger.info("Initializing AudioPlayer")
+
+        # Set default audio output device to speaker
+        self.current_output_device = os.getenv("DEFAULT_AUDIO_DEVICE")
+
+        # Set the SDL audio driver environment variable
+        if self.current_output_device == "aux":
+            # Use ALSA driver with built-in audio device
+            os.environ["SDL_AUDIODRIVER"] = "alsa"
+            os.environ["AUDIODEV"] = "default"
+        else:  # speaker
+            os.environ["SDL_AUDIODRIVER"] = "alsa"
+            os.environ["AUDIODEV"] = "hw:0,0"  # First device for HiFiBerry
+
         pg.mixer.init()
         self.session = Session()
         self.audio_lock = Lock()
@@ -202,6 +215,59 @@ class AudioPlayer:
         """
         with self.audio_lock:
             return self.current_audio
+
+    def switch_audio_output(self, output_device):
+        """
+        Switch audio output between different devices.
+
+        Args:
+            output_device (str): 'speaker' for external speaker or 'aux' for aux port
+
+        Returns:
+            bool: True if switch was successful, False otherwise
+        """
+        logger.info(f"Switching audio output to: {output_device}")
+        try:
+            self.stop()
+
+            pg.mixer.quit()
+
+            # Set the SDL audio driver environment variable
+            if output_device == "aux":
+                # Use ALSA driver with built-in audio device
+                os.environ["SDL_AUDIODRIVER"] = "alsa"
+                os.environ["AUDIODEV"] = "default"
+            else:  # speaker
+                os.environ["SDL_AUDIODRIVER"] = "alsa"
+                os.environ["AUDIODEV"] = "hw:0,0"  # First device for HiFiBerry
+
+            pg.mixer.init()
+
+            self.current_output_device = output_device
+
+            logger.info(f"Audio output switched to {output_device}")
+            return True
+        except Exception as e:
+            logger.error(f"Error switching audio output: {str(e)}")
+
+            # Try to recover by reinitializing with default settings
+            try:
+                pg.mixer.quit()
+                pg.mixer.init()
+            except Exception as e2:
+                logger.error(f"Recovery failed: {str(e2)}")
+            return False
+
+    def get_current_audio_device(self):
+        """
+        Get the name of the currently active output device.
+
+        Returns:
+            str: 'speaker' or 'aux'
+        """
+        return getattr(
+            self, "current_output_device", "speaker"
+        )  # Default to speaker if not set
 
     def start_player(self, rfid_reader, shutdown_event):
         """

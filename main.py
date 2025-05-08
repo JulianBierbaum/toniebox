@@ -222,6 +222,57 @@ def main():
                         oled_menu.display_message("No audio files")
                         time.sleep(2)
 
+                elif oled_menu.menu_selection == 3:  # Audio Output
+                    logger.debug("Entering Audio Output menu")
+
+                    # Set the initial selection based on current device
+                    current_device = audio_player.get_current_audio_device()
+                    oled_menu.audio_output_selection = (
+                        0 if current_device == "speaker" else 1
+                    )
+
+                    oled_menu.current_menu = "audio_output"
+                    oled_menu.option_confirmed = False
+
+                    while (
+                        not oled_menu.option_confirmed and not shutdown_event.is_set()
+                    ):
+                        oled_menu.display_audio_output_menu()
+                        time.sleep(0.1)
+
+                    if shutdown_event.is_set():
+                        break
+
+                    new_device = (
+                        "speaker"
+                        if oled_menu.audio_output_selection == 0
+                        else "aux"
+                    )
+
+                    if new_device != current_device:
+                        logger.info(
+                            f"Switching audio output from {current_device} to {new_device}"
+                        )
+                        oled_menu.display_message(
+                            f"Switching to {new_device.title()}..."
+                        )
+
+                        audio_player.stop()
+
+                        # Switch audio output
+                        success = audio_player.switch_audio_output(new_device)
+
+                        if success:
+                            oled_menu.display_message(
+                                f"Switched to {new_device.title()}"
+                            )
+                        else:
+                            oled_menu.display_message("Switch failed! Check logs")
+
+                        time.sleep(1.5)
+
+                    oled_menu.current_menu = "main"
+
         except KeyboardInterrupt:
             logger.info("Application terminated by user via keyboard")
         except Exception as e:
