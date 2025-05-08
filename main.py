@@ -222,53 +222,101 @@ def main():
                         oled_menu.display_message("No audio files")
                         time.sleep(2)
 
-                elif oled_menu.menu_selection == 3:  # Audio Output
-                    logger.debug("Entering Audio Output menu")
+                elif oled_menu.menu_selection == 3:  # Audio Settings
+                    logger.debug("Entering Audio Settings menu")
 
-                    # Set the initial selection based on current device
+                    # Initialize the menu state
+                    oled_menu.current_menu = "audio_menu"
+                    oled_menu.audio_menu_selection = 1  # Start with Volume selected
+                    oled_menu.adjusting_volume = False
+
+                    # Get current volume and output device
+                    oled_menu.volume_value = audio_player.get_volume()
                     current_device = audio_player.get_current_audio_device()
                     oled_menu.audio_output_selection = (
                         0 if current_device == "speaker" else 1
                     )
 
-                    oled_menu.current_menu = "audio_output"
+                    # Menu interaction loop
                     oled_menu.option_confirmed = False
-
                     while (
                         not oled_menu.option_confirmed and not shutdown_event.is_set()
                     ):
-                        oled_menu.display_audio_output_menu()
+                        # Display the menu
+                        oled_menu.display_audio_menu()
+
+                        # Wait for user input
                         time.sleep(0.1)
 
-                    if shutdown_event.is_set():
-                        break
+                        # Process user selection
+                        if oled_menu.option_confirmed:
+                            # Handle the selected option
+                            if oled_menu.audio_menu_selection == 0:  # Back
+                                # Exit the menu
+                                logger.debug(
+                                    "User selected Back, exiting Audio Settings"
+                                )
+                                oled_menu.current_menu = "main"
+                                break
 
-                    new_device = (
-                        "speaker" if oled_menu.audio_output_selection == 0 else "aux"
-                    )
+                            elif oled_menu.audio_menu_selection == 1:  # Volume
+                                # Toggle volume adjustment mode
+                                oled_menu.adjusting_volume = (
+                                    not oled_menu.adjusting_volume
+                                )
+                                logger.debug(
+                                    f"Volume adjustment mode: {oled_menu.adjusting_volume}"
+                                )
 
-                    if new_device != current_device:
-                        logger.info(
-                            f"Switching audio output from {current_device} to {new_device}"
-                        )
-                        oled_menu.display_message(
-                            f"Switching to {new_device.title()}..."
-                        )
+                                if not oled_menu.adjusting_volume:
+                                    # Apply volume change when exiting adjustment mode
+                                    audio_player.set_volume(oled_menu.volume_value)
+                                    logger.info(
+                                        f"Volume set to {oled_menu.volume_value}%"
+                                    )
 
-                        audio_player.stop()
+                                # Reset confirmation flag to stay in the menu
+                                oled_menu.option_confirmed = False
 
-                        # Switch audio output
-                        success = audio_player.switch_audio_output(new_device)
+                            elif oled_menu.audio_menu_selection == 2:  # Output Device
+                                # Toggle between speaker and aux
+                                new_device = (
+                                    "speaker"
+                                    if oled_menu.audio_output_selection == 0
+                                    else "aux"
+                                )
+                                current_device = audio_player.get_current_audio_device()
 
-                        if success:
-                            oled_menu.display_message(
-                                f"Switched to {new_device.title()}"
-                            )
-                        else:
-                            oled_menu.display_message("Switch failed! Check logs")
+                                if new_device != current_device:
+                                    logger.info(
+                                        f"Switching audio output from {current_device} to {new_device}"
+                                    )
+                                    oled_menu.display_message(
+                                        f"Switching to {new_device.title()}..."
+                                    )
 
-                        time.sleep(1.5)
+                                    audio_player.stop()
 
+                                    # Switch audio output
+                                    success = audio_player.switch_audio_output(
+                                        new_device
+                                    )
+
+                                    if success:
+                                        oled_menu.display_message(
+                                            f"Switched to {new_device.title()}"
+                                        )
+                                    else:
+                                        oled_menu.display_message(
+                                            "Switch failed! Check logs"
+                                        )
+
+                                    time.sleep(1.5)
+
+                                # Reset confirmation flag to stay in the menu
+                                oled_menu.option_confirmed = False
+
+                    # Reset to main menu
                     oled_menu.current_menu = "main"
 
         except KeyboardInterrupt:

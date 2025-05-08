@@ -256,9 +256,51 @@ class AudioPlayer:
         Returns:
             str: 'speaker' or 'aux'
         """
-        return getattr(
-            self, "current_output_device", "speaker"
-        )  # Default to speaker if not set
+        return getattr(self, "current_output_device", "speaker")
+
+    def set_volume(self, volume_percent):
+        """
+        Set the playback volume level.
+
+        Args:
+            volume_percent (int): Volume level from 0-100
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            volume_percent = max(0, min(100, volume_percent))
+            volume = volume_percent / 100.0
+
+            pg.mixer.music.set_volume(volume)
+
+            self.current_volume = volume_percent
+
+            return True
+        except Exception as e:
+            logger.error(f"Error setting volume: {str(e)}")
+            return False
+
+    def get_volume(self):
+        """
+        Get the current volume level.
+
+        Returns:
+            int: Volume level from 0-100
+        """
+        # Return stored volume or get from pygame if available
+        if hasattr(self, "current_volume"):
+            return self.current_volume
+        else:
+            try:
+                # Get from pygame and convert to percentage
+                vol = pg.mixer.music.get_volume() * 100
+                self.current_volume = int(vol)
+                return self.current_volume
+            except Exception:
+                # Default if unable to get volume
+                self.current_volume = 80
+                return self.current_volume
 
     def start_player(self, rfid_reader, shutdown_event):
         """

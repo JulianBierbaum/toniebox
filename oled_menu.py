@@ -55,12 +55,12 @@ class OLEDMenu:
             logger.error(f"Failed to initialize OLED display: {e}")
             raise
 
-        # Menu state
+        # Menu states
         self.menu_options = [
             "Currently Playing",
             "Add/Update Audio",
             "List Audios",
-            "Audio Output",
+            "Audio Settings",
         ]
         self.menu_selection = 0
         self.yes_no_options = ["Yes", "No"]
@@ -73,6 +73,11 @@ class OLEDMenu:
         # Audio output menu options
         self.audio_output_options = ["Speaker", "AUX"]
         self.audio_output_selection = 0
+
+        self.audio_menu_options = ["Back", "Volume", "Output Device"]
+        self.audio_menu_selection = 1
+        self.volume_value = 80
+        self.adjusting_volume = False
 
         # Input controls setup
         try:
@@ -95,7 +100,7 @@ class OLEDMenu:
     def handle_rotation(self):
         """
         Handle rotary encoder rotation events.
-        Only process rotation in menus where it makes sense.
+        Now includes volume adjustment mode.
         """
         if (
             self.current_menu == "currently_playing"
@@ -107,23 +112,30 @@ class OLEDMenu:
         # Get the current state of the encoder
         steps = self.encoder.steps
         if steps != 0:
-            if steps > 0:
-                for _ in range(steps):
-                    self._change_selection(1)  # Down
+            if (
+                self.current_menu == "audio_menu"
+                and self.audio_menu_selection == 1
+                and self.adjusting_volume
+            ):
+                # Adjust volume
+                self.volume_value = max(0, min(100, self.volume_value + steps * 5))
+                logger.debug(f"Volume adjusted to: {self.volume_value}%")
             else:
-                for _ in range(abs(steps)):
-                    self._change_selection(-1)  # Up
+                # Regular menu navigation
+                if steps > 0:
+                    for _ in range(steps):
+                        self._change_selection(1)  # Down
+                else:
+                    for _ in range(abs(steps)):
+                        self._change_selection(-1)  # Up
 
-            # Reset the encoder steps after processing
             self.encoder.steps = 0
             self.update_display()
 
     def _change_selection(self, direction):
         """
         Change selection based on direction.
-
-        Args:
-            direction (int): 1 for increment, -1 for decrement
+        Now includes audio menu selections.
         """
         if self.current_menu == "main":
             self.menu_selection = (self.menu_selection + direction) % len(
@@ -153,6 +165,14 @@ class OLEDMenu:
             logger.debug(
                 f"Audio output selection changed to: {self.audio_output_options[self.audio_output_selection]}"
             )
+        elif self.current_menu == "audio_menu":
+            if not self.adjusting_volume or self.audio_menu_selection != 1:
+                self.audio_menu_selection = (
+                    self.audio_menu_selection + direction
+                ) % len(self.audio_menu_options)
+                logger.debug(
+                    f"Audio menu selection changed to: {self.audio_menu_options[self.audio_menu_selection]}"
+                )
 
     def on_confirm_pressed(self):
         """Handle confirmation"""
@@ -313,6 +333,8 @@ class OLEDMenu:
             self.display_current_audio(current)
         elif self.current_menu == "audio_output":
             self.display_audio_output_menu()
+        elif self.current_menu == "audio_menu":
+            self.display_audio_menu()
 
     def wait_for_confirmation(self, timeout=None):
         """
@@ -334,3 +356,44 @@ class OLEDMenu:
             time.sleep(0.1)
         logger.debug("Received confirmation")
         return True
+
+    def display_audio_menu(self):
+        """Display the audio settings menu with volume slider and output selection."""
+        logger.debug("Displaying audio settings menu")
+        with canvas(self.device) as draw:
+            draw.text((0, 0), "Audio Settings:", font=self.font, fill="white")
+
+            for i, item in enumerate(self.audio_menu_options):
+                y_pos = 16 + (i * 12)
+                prefix = ">" if i == self.audio_menu_selection else " "
+                draw.text((0, y_pos), f"{prefix} {item}", font=self.font, fill="white")
+
+            # Draw volume slider if that option is selected
+            if self.audio_menu_selection == 1:
+                # Volume slider (48 pixels wide)
+                slider_y = 16 + 12 + 4
+                slider_width = 48
+                # Calculate filled width based on volume value
+                filled_width = int((self.volume_value / 100) * slider_width)
+
+                draw.rectangle(
+                    (50, slider_y, 50 + slider_width, slider_y + 6), outline="white"
+                )
+                draw.rectangle(
+                    (50, slider_y, 50 + filled_width, slider_y + 6),
+                    fill="white" if self.adjusting_volume else None,
+                )
+
+                draw.text(
+                    (105, slider_y),
+                    f"{self.volume_value}%",
+                    font=self.font,
+                    fill="white",
+                )
+
+            # Draw current output device if that option is selected
+            if self.audio_menu_selection == 2:
+                current_device = self.audio_output_options[self.audio_output_selection]
+                draw.text(
+                    (60, 16 + 24), f"< {current_device} >", font=self.font, fill="white"
+                )
