@@ -234,12 +234,11 @@ class AudioPlayer:
 
             # Set the SDL audio driver environment variable
             if output_device == "aux":
-                # Use ALSA driver with built-in audio device
                 os.environ["SDL_AUDIODRIVER"] = "alsa"
-                os.environ["AUDIODEV"] = "default"
-            else:  # speaker
+                os.environ["AUDIODEV"] = "hw:0,0"  # onboard 3.5mm
+            elif output_device == "speaker":
                 os.environ["SDL_AUDIODRIVER"] = "alsa"
-                os.environ["AUDIODEV"] = "hw:0,0"  # First device for HiFiBerry
+                os.environ["AUDIODEV"] = "hw:1,0"  # HiFiBerry
 
             pg.mixer.init()
 

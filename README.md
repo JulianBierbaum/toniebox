@@ -71,6 +71,14 @@ Set up ALSA (Advanced Linux Sound Architecture) to work with an external speaker
 
 - open `/boot/firmware/config.txt`
 - comment out the line `dtparam=audio=on`
-- add `dtoverlay=hifiberry-dac` to the file
+- add the code to the file
+
+Code:
+``````bash
+dtparam=audio=on
+dtoverlay=hifiberry-dac,card=1
+``````
+
 - reboot raspberry pi
+- `aplay -l` to verify
 

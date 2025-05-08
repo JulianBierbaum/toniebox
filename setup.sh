@@ -79,20 +79,21 @@ else
 fi
 
 # Configure ALSA for external speaker
-echo "Configuring ALSA for external speaker..."
+echo "Configuring ALSA for onboard and external audio..."
 CONFIG_FILE="/boot/firmware/config.txt"
-# If the file doesn't exist, try the alternative location
 if [ ! -f "$CONFIG_FILE" ]; then
     CONFIG_FILE="/boot/config.txt"
 fi
 
-# Check if the file exists
 if [ -f "$CONFIG_FILE" ]; then
-    # Comment out dtparam=audio=on
-    sudo sed -i 's/^dtparam=audio=on/#dtparam=audio=on/' $CONFIG_FILE
-    # Add HiFiBerry DAC overlay if not already present
-    if ! grep -q "dtoverlay=hifiberry-dac" $CONFIG_FILE; then
-        echo "dtoverlay=hifiberry-dac" | sudo tee -a $CONFIG_FILE
+    # Ensure onboard audio is enabled
+    sudo sed -i 's/^#\?dtparam=audio=on/dtparam=audio=on/' $CONFIG_FILE
+
+    # Add HiFiBerry DAC with card=1 if not present
+    if grep -q "dtoverlay=hifiberry-dac" "$CONFIG_FILE"; then
+        sudo sed -i 's/dtoverlay=hifiberry-dac.*/dtoverlay=hifiberry-dac,card=1/' "$CONFIG_FILE"
+    else
+        echo "dtoverlay=hifiberry-dac,card=1" | sudo tee -a "$CONFIG_FILE"
     fi
 else
     echo "Warning: Could not find config.txt file. You'll need to manually configure ALSA settings."
