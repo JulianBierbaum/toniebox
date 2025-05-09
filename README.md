@@ -39,7 +39,7 @@ Group=pi
 Environment="DISPLAY=:0"
 Environment="XDG_RUNTIME_DIR=/run/user/1000"
 
-TimeoutStartSec=30
+TimeoutStartSec=60
 TimeoutStopSec=10
 KillMode=process
 SendSIGKILL=yes

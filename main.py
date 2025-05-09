@@ -281,6 +281,10 @@ def main():
                                 oled_menu.option_confirmed = False
 
                             elif oled_menu.audio_menu_selection == 2:  # Output Device
+                                oled_menu.option_confirmed = False
+                                oled_menu.audio_menu_selection = 0
+                                oled_menu.adjusting_volume = False
+
                                 # Toggle between speaker and aux
                                 oled_menu.audio_output_selection = (
                                     oled_menu.audio_output_selection + 1
