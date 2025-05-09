@@ -78,7 +78,7 @@ class OLEDMenu:
         self.audio_menu_selection = 1
         self.adjusting_volume = False
         
-        self.volume_value = 25
+        self.volume_value = int(os.getenv("DEFAULT_VOLUME"))
         logger.info(f"Loaded DEFAULT_VOLUME: {self.volume_value}")
 
         try:
