@@ -76,12 +76,12 @@ class OLEDMenu:
 
         self.audio_menu_options = ["Back", "Volume", "Output Device"]
         self.audio_menu_selection = 1
-        self.volume_value = 25
-        logger.debug(f"Loaded DEFAULT_VOLUME: {self.volume_value}")
         self.adjusting_volume = False
 
-        # Input controls setup
         try:
+            self.volume_value = 25
+            logger.debug(f"Loaded DEFAULT_VOLUME: {self.volume_value}")
+        
             self.encoder_bounce_time = os.getenv("ENCODER_BOUNCE_TIME")
             self.encoder = RotaryEncoder(
                 encoder_clk, encoder_dt, bounce_time=float(self.encoder_bounce_time)
