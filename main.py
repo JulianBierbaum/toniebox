@@ -303,8 +303,8 @@ def main():
                                     audio_player.stop()
 
                                     # Switch audio output
-                                    success = audio_player.switch_audio_output(
-                                        new_device
+                                    success, error_msg = (
+                                        audio_player.switch_audio_output(new_device)
                                     )
 
                                     if success:
@@ -312,9 +312,14 @@ def main():
                                             f"Switched to {new_device.title()}"
                                         )
                                     else:
-                                        oled_menu.display_message(
-                                            "Switch failed! Check logs"
-                                        )
+                                        if "unavailable" in error_msg.lower():
+                                            oled_menu.display_message(
+                                                f"{new_device.title()} unavailable"
+                                            )
+                                        else:
+                                            oled_menu.display_message(
+                                                "Switch failed! Check logs"
+                                            )
 
                                     time.sleep(1.5)
 

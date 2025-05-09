@@ -53,6 +53,12 @@ class AudioPlayer:
         """
         Internal helper to set environment and initialize mixer.
         Falls back if specified device is unavailable.
+
+        Args:
+            device (str): 'speaker' or 'aux'
+
+        Returns:
+            bool: True if initialization successful, False otherwise
         """
         logger.info(f"Initializing audio for device: {device}")
 
@@ -73,20 +79,17 @@ class AudioPlayer:
                 logger.warning(f"Failed to initialize audio on {dev_name}: {str(e)}")
                 return False
 
+        # Try to initialize the requested device without falling back
         if device == "aux":
-            if not try_device("aux", "hw:0,0"):
-                logger.warning("Falling back to speaker output")
-                try_device("speaker", "hw:1,0")
-                self.current_output_device = "speaker"
-            else:
+            success = try_device("aux", "hw:0,0")
+            if success:
                 self.current_output_device = "aux"
-        else:
-            if not try_device("speaker", "hw:1,0"):
-                logger.warning("Falling back to aux output")
-                try_device("aux", "hw:0,0")
-                self.current_output_device = "aux"
-            else:
+            return success
+        else:  # device == "speaker"
+            success = try_device("speaker", "hw:1,0")
+            if success:
                 self.current_output_device = "speaker"
+            return success
 
     def play_file(self, filename):
         """Play an audio file directly by filename"""
@@ -253,17 +256,27 @@ class AudioPlayer:
             output_device (str): 'speaker' for external speaker or 'aux' for aux port
 
         Returns:
-            bool: True if switch was successful, False otherwise
+            tuple: (bool, str) - Success flag and error message if applicable
         """
         logger.info(f"Switching audio output to: {output_device}")
         try:
             self.stop()
-            self._initialize_audio(output_device)
-            self.current_output_device = output_device
-            return True
+
+            # First try initializing the requested device
+            success = self._initialize_audio(output_device)
+
+            if success:
+                self.current_output_device = output_device
+                return True, ""
+            else:
+                error_msg = f"{output_device.title()} device unavailable"
+                logger.error(f"Failed to switch to {output_device}: {error_msg}")
+                return False, error_msg
+
         except Exception as e:
-            logger.error(f"Error switching audio output: {str(e)}")
-            return False
+            error_msg = str(e)
+            logger.error(f"Error switching audio output: {error_msg}")
+            return False, error_msg
 
     def get_current_audio_device(self):
         """
