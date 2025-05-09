@@ -52,25 +52,41 @@ class AudioPlayer:
     def _initialize_audio(self, device):
         """
         Internal helper to set environment and initialize mixer.
+        Falls back if specified device is unavailable.
         """
         logger.info(f"Initializing audio for device: {device}")
 
-        # Stop and quit mixer if it's already running
         try:
             if pg.mixer.get_init():
                 pg.mixer.quit()
         except Exception:
             pass
 
-        # Set environment before reinitializing mixer
-        if device == "aux":
+        def try_device(dev_name, alsa_hw):
             os.environ["SDL_AUDIODRIVER"] = "alsa"
-            os.environ["AUDIODEV"] = "hw:0,0"
-        else:  # speaker
-            os.environ["SDL_AUDIODRIVER"] = "alsa"
-            os.environ["AUDIODEV"] = "hw:1,0"
+            os.environ["AUDIODEV"] = alsa_hw
+            try:
+                pg.mixer.init()
+                logger.info(f"Audio initialized successfully on device: {dev_name}")
+                return True
+            except Exception as e:
+                logger.warning(f"Failed to initialize audio on {dev_name}: {str(e)}")
+                return False
 
-        pg.mixer.init()
+        if device == "aux":
+            if not try_device("aux", "hw:0,0"):
+                logger.warning("Falling back to speaker output")
+                try_device("speaker", "hw:1,0")
+                self.current_output_device = "speaker"
+            else:
+                self.current_output_device = "aux"
+        else:
+            if not try_device("speaker", "hw:1,0"):
+                logger.warning("Falling back to aux output")
+                try_device("aux", "hw:0,0")
+                self.current_output_device = "aux"
+            else:
+                self.current_output_device = "speaker"
 
     def play_file(self, filename):
         """Play an audio file directly by filename"""
