@@ -24,9 +24,9 @@ logger = get_logger(__name__)
 shutdown_event = th.Event()
 
 
-def signal_handler():
+def signal_handler(sig, frame):
     """Handle shutdown signals."""
-    logger.info("Received shutdown signal, initiating graceful shutdown...")
+    logger.info(f"Received shutdown signal {sig}, initiating graceful shutdown...")
     shutdown_event.set()
     sys.exit(0)
 
