@@ -38,6 +38,10 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
+    # Delay to allow system services to start (e.g., audio)
+    logger.info("Waiting for system services to start...")
+    time.sleep(10)
+
     try:
         # Initialize database
         logger.info("Initializing database")
@@ -45,9 +49,27 @@ def main():
 
         # Initialize components
         logger.info("Initializing application components")
-        audio_player = AudioPlayer()
-        oled_menu = OLEDMenu()
-        rfid_reader = RFIDReader()
+
+        try:
+            logger.info("Initializing AudioPlayer")
+            audio_player = AudioPlayer()
+        except Exception as e:
+            logger.error(f"Failed to initialize AudioPlayer: {e}", exc_info=True)
+            sys.exit(1)
+
+        try:
+            logger.info("Initializing OLEDMenu")
+            oled_menu = OLEDMenu()
+        except Exception as e:
+            logger.error(f"Failed to initialize OLEDMenu: {e}", exc_info=True)
+            sys.exit(1)
+
+        try:
+            logger.info("Initializing RFIDReader")
+            rfid_reader = RFIDReader()
+        except Exception as e:
+            logger.error(f"Failed to initialize RFIDReader: {e}", exc_info=True)
+            sys.exit(1)
 
         # Start the RFID reader thread
         logger.info("Starting player thread")
@@ -65,7 +87,9 @@ def main():
                 # Main menu display
                 oled_menu.current_menu = "main"
                 oled_menu.display_menu()
+                logger.debug(f"Calling oled_menu.wait_for_confirmation() for menu: {oled_menu.current_menu}")
                 oled_menu.wait_for_confirmation()
+                logger.debug("oled_menu.wait_for_confirmation() returned.")
 
                 if shutdown_event.is_set():
                     logger.debug("Shutdown detected in UI loop")

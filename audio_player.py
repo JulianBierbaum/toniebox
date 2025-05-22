@@ -72,6 +72,7 @@ class AudioPlayer:
             os.environ["SDL_AUDIODRIVER"] = "alsa"
             os.environ["AUDIODEV"] = alsa_hw
             try:
+                logger.debug(f"Attempting to initialize audio with pg.mixer.init() for device: {dev_name} using ALSA HW: {alsa_hw}")
                 pg.mixer.init()
                 logger.info(f"Audio initialized successfully on device: {dev_name}")
                 return True
@@ -258,12 +259,14 @@ class AudioPlayer:
         Returns:
             tuple: (bool, str) - Success flag and error message if applicable
         """
+        logger.debug(f"Attempting to switch audio output to {output_device}")
         logger.info(f"Switching audio output to: {output_device}")
         try:
             self.stop()
 
             # First try initializing the requested device
             success = self._initialize_audio(output_device)
+            logger.debug(f"_initialize_audio call for {output_device} returned success: {success}")
 
             if success:
                 self.current_output_device = output_device
@@ -344,12 +347,14 @@ class AudioPlayer:
         none_counter = 0
 
         while not shutdown_event.is_set():
+            logger.debug("Checking reader_active status and for shutdown event.")
             if not self.reader_active:
                 time.sleep(0.1)
                 continue
 
             try:
                 id_val, text = rfid_reader.read_tag_no_block()
+                logger.debug(f"rfid_reader.read_tag_no_block() returned: id_val={id_val}, text={text}")
                 if id_val is not None:
                     if id_val != current_id:
                         current_id = id_val
@@ -365,7 +370,8 @@ class AudioPlayer:
                 # Stop playback if tag is removed (multiple empty reads)
                 if none_counter >= 2:
                     if current_id != 0:
-                        logger.debug(f"RFID tag removed: {current_id}")
+                        logger.debug(f"RFID tag {current_id} removed, stopping playback.")
+                        logger.debug(f"RFID tag removed: {current_id}") # Existing log
                     self.stop()
                     none_counter = 0
                     current_id = 0
