@@ -48,6 +48,12 @@ class AudioPlayer:
         self.reader_active = True
         self.media_path = media_path
         self.audio_thread = None
+        
+        # Initialize volume to default value
+        default_volume = int(os.getenv("DEFAULT_VOLUME", "25"))
+        self.current_volume = default_volume
+        self.set_volume(default_volume)
+        logger.info(f"Volume initialized to {default_volume}%")
 
     def _initialize_audio(self, device):
         """
@@ -267,6 +273,8 @@ class AudioPlayer:
 
             if success:
                 self.current_output_device = output_device
+                # Re-apply volume after switching devices
+                self.set_volume(self.current_volume)
                 return True, ""
             else:
                 error_msg = f"{output_device.title()} device unavailable"
@@ -304,6 +312,7 @@ class AudioPlayer:
             pg.mixer.music.set_volume(volume)
 
             self.current_volume = volume_percent
+            logger.debug(f"Volume set to {volume_percent}%")
 
             return True
         except Exception as e:
@@ -328,7 +337,8 @@ class AudioPlayer:
                 return self.current_volume
             except Exception:
                 # Default if unable to get volume
-                self.current_volume = 80
+                default_volume = int(os.getenv("DEFAULT_VOLUME", "25"))
+                self.current_volume = default_volume
                 return self.current_volume
 
     def start_player(self, rfid_reader, shutdown_event):
@@ -364,8 +374,7 @@ class AudioPlayer:
 
                 # Stop playback if tag is removed (multiple empty reads)
                 if none_counter >= 2:
-                    if current_id != 0:
-                        logger.debug(f"RFID tag removed: {current_id}")
+                    logger.debug(f"RFID tag removed: {current_id}")
                     self.stop()
                     none_counter = 0
                     current_id = 0
