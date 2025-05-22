@@ -12,6 +12,7 @@ from gpiozero import Button, RotaryEncoder
 from luma.core.interface.serial import i2c
 from luma.core.render import canvas
 from luma.oled.device import sh1106
+from luma.core.error import DeviceNotFoundError
 from PIL import ImageFont
 
 from logger import get_logger
@@ -23,37 +24,14 @@ logger = get_logger(__name__)
 
 
 class OLEDMenu:
-    """
-    A class to handle the OLED display and menu system with rotary encoder.
-
-    This class provides methods to display and navigate menus on the OLED
-    screen using a KY-040 rotary encoder for navigation and its switch
-    for confirmation.
-    """
-
     def __init__(
         self,
         encoder_clk=os.getenv("ENCODER_CLK"),
         encoder_dt=os.getenv("ENCODER_DT"),
         confirm_pin=os.getenv("ENCODER_CONFIRM"),
     ):
-        """
-        Initialize the OLED display and input controls.
-
-        Args:
-            encoder_clk (int): GPIO pin for encoder CLK (rotary pin A)
-            encoder_dt (int): GPIO pin for encoder DT (rotary pin B)
-            confirm_pin (int): GPIO pin for encoder switch (confirm button)
-        """
         logger.info("Initializing OLED menu system")
-        try:
-            self.serial = i2c(port=1, address=0x3C)
-            self.device = sh1106(self.serial)
-            self.font = ImageFont.load_default()
-            logger.info("OLED display initialized successfully")
-        except Exception as e:
-            logger.error(f"Failed to initialize OLED display: {e}")
-            raise
+        self.display_available = self._initialize_display()
 
         # Menu states
         self.menu_options = [
@@ -70,7 +48,6 @@ class OLEDMenu:
         self.option_confirmed = False
         self.current_menu = "main"
 
-        # Audio output menu options
         self.audio_output_options = ["Speaker", "AUX"]
         self.audio_output_selection = 0
 
@@ -78,11 +55,11 @@ class OLEDMenu:
         self.audio_menu_selection = 1
         self.adjusting_volume = False
 
-        self.volume_value = int(os.getenv("DEFAULT_VOLUME"))
+        self.volume_value = int(os.getenv("DEFAULT_VOLUME", 50))
         logger.info(f"Loaded DEFAULT_VOLUME: {self.volume_value}")
 
         try:
-            self.encoder_bounce_time = os.getenv("ENCODER_BOUNCE_TIME")
+            self.encoder_bounce_time = os.getenv("ENCODER_BOUNCE_TIME", 0.02)
             self.encoder = RotaryEncoder(
                 encoder_clk, encoder_dt, bounce_time=float(self.encoder_bounce_time)
             )
@@ -90,13 +67,36 @@ class OLEDMenu:
                 confirm_pin, bounce_time=float(self.encoder_bounce_time)
             )
 
-            # Event handlers
             self.encoder.when_rotated = self.handle_rotation
             self.confirm.when_pressed = self.on_confirm_pressed
             logger.info("Input controls initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize input controls: {e}")
             raise
+
+    def _initialize_display(self):
+        try:
+            self.serial = i2c(port=1, address=0x3C)
+            self.device = sh1106(self.serial)
+            self.font = ImageFont.load_default()
+            logger.info("OLED display initialized successfully")
+            return True
+        except DeviceNotFoundError:
+            logger.error("OLED display not found on I2C address 0x3C.")
+            return False
+        except Exception as e:
+            logger.exception(f"Unexpected error initializing OLED display: {e}")
+            return False
+
+    def _safe_draw(self, draw_function):
+        if not self.display_available:
+            logger.warning("Attempted to draw while display is unavailable.")
+            return
+        try:
+            with canvas(self.device) as draw:
+                draw_function(draw)
+        except Exception as e:
+            logger.error(f"Error during OLED drawing: {e}")
 
     def handle_rotation(self):
         """
@@ -215,78 +215,91 @@ class OLEDMenu:
                 draw.text((0, y_pos), f"{prefix} {item}", font=self.font, fill="white")
 
     def display_menu(self):
-        """Display the main menu on the OLED screen."""
         logger.debug("Displaying main menu")
-        with canvas(self.device) as draw:
-            draw.text((0, 0), "RFID Audio Player", font=self.font, fill="white")
+        self._safe_draw(lambda draw: (
+            draw.text((0, 0), "RFID Audio Player", font=self.font, fill="white"),
             self._draw_menu_items(draw, self.menu_options, self.menu_selection)
+        ))
 
     def display_yes_no_menu(self):
-        """Display a yes/no confirmation menu on the OLED screen."""
         logger.debug("Displaying yes/no menu")
-        with canvas(self.device) as draw:
-            draw.text((0, 0), "Overwrite?", font=self.font, fill="white")
-            draw.text((0, 16), "Entry exists", font=self.font, fill="white")
-            self._draw_menu_items(
-                draw, self.yes_no_options, self.yes_no_selection, start_y=32
-            )
+        self._safe_draw(lambda draw: (
+            draw.text((0, 0), "Overwrite?", font=self.font, fill="white"),
+            draw.text((0, 16), "Entry exists", font=self.font, fill="white"),
+            self._draw_menu_items(draw, self.yes_no_options, self.yes_no_selection, start_y=32)
+        ))
 
     def display_file_menu(self, files):
-        """
-        Display a menu of files on the OLED screen.
-
-        Args:
-            files (list): List of filenames to display
-        """
         logger.debug(f"Displaying file menu with {len(files)} files")
-        with canvas(self.device) as draw:
-            draw.text((0, 0), "Files:", font=self.font, fill="white")
+        self._safe_draw(lambda draw: (
+            draw.text((0, 0), "Files:", font=self.font, fill="white"),
             self._draw_menu_items(draw, files, self.file_selection)
+        ))
 
     def display_current_audio(self, current_audio):
-        """
-        Display the currently playing audio on the OLED screen.
-
-        Args:
-            current_audio (str or None): Currently playing audio filename or None
-        """
         logger.debug(f"Displaying current audio: {current_audio}")
-        with canvas(self.device) as draw:
+
+        def draw_callback(draw):
             draw.text((0, 0), "Now Playing:", font=self.font, fill="white")
             if current_audio:
                 if len(current_audio) > 18:
                     draw.text((0, 16), current_audio[:18], font=self.font, fill="white")
-                    draw.text(
-                        (0, 28), current_audio[18:36], font=self.font, fill="white"
-                    )
+                    draw.text((0, 28), current_audio[18:36], font=self.font, fill="white")
                 else:
                     draw.text((0, 16), current_audio, font=self.font, fill="white")
             else:
                 draw.text((0, 16), "No audio playing", font=self.font, fill="white")
             draw.text((0, 48), "Press OK to return", font=self.font, fill="white")
 
+        self._safe_draw(draw_callback)
+
     def display_audio_output_menu(self):
-        """Display the audio output selection menu on the OLED screen."""
         logger.debug("Displaying audio output menu")
-        with canvas(self.device) as draw:
-            draw.text((0, 0), "Audio Output:", font=self.font, fill="white")
-            self._draw_menu_items(
-                draw, self.audio_output_options, self.audio_output_selection
-            )
+        self._safe_draw(lambda draw: (
+            draw.text((0, 0), "Audio Output:", font=self.font, fill="white"),
+            self._draw_menu_items(draw, self.audio_output_options, self.audio_output_selection)
+        ))
 
     def display_message(self, message):
-        """
-        Display a message on the OLED screen.
-
-        Args:
-            message (str): Message to display
-        """
         logger.debug(f"Displaying message: {message[:20]}...")
-        with canvas(self.device) as draw:
-            # Split the message into lines that fit the display
+
+        def draw_callback(draw):
             lines = self._wrap_text_to_lines(message, max_chars=18)
-            for i, line in enumerate(lines[:4]):  # Display up to 4 lines
+            for i, line in enumerate(lines[:4]):
                 draw.text((0, i * 16), line, font=self.font, fill="white")
+
+        self._safe_draw(draw_callback)
+
+    def display_audio_menu(self):
+        logger.debug("Displaying audio settings menu")
+
+        def draw_callback(draw):
+            draw.text((0, 0), "Audio Settings:", font=self.font, fill="white")
+            for i, item in enumerate(self.audio_menu_options):
+                y_pos = 16 + (i * 12)
+                prefix = ">" if i == self.audio_menu_selection else " "
+                draw.text((0, y_pos), f"{prefix} {item}", font=self.font, fill="white")
+
+            if self.audio_menu_selection == 1:
+                slider_y = 16 + 12 + 4
+                slider_width = 48
+                filled_width = int((self.volume_value / 100) * slider_width)
+
+                draw.rectangle((50, slider_y, 50 + slider_width, slider_y + 6), outline="white")
+
+                if filled_width > 0:
+                    draw.rectangle(
+                        (50, slider_y, 50 + filled_width, slider_y + 6),
+                        fill="white" if self.adjusting_volume else "white",
+                        outline="white",
+                    )
+                draw.text((105, slider_y), f"{self.volume_value}%", font=self.font, fill="white")
+
+            if self.audio_menu_selection == 2:
+                current_device = self.audio_output_options[self.audio_output_selection]
+                draw.text((60, 30 + 24), f"< {current_device} >", font=self.font, fill="white")
+
+        self._safe_draw(draw_callback)
 
     def _wrap_text_to_lines(self, text, max_chars=18):
         """
@@ -357,49 +370,3 @@ class OLEDMenu:
             time.sleep(0.1)
         logger.debug("Received confirmation")
         return True
-
-    def display_audio_menu(self):
-        """Display the audio settings menu with volume slider and output selection."""
-        logger.debug("Displaying audio settings menu")
-        with canvas(self.device) as draw:
-            draw.text((0, 0), "Audio Settings:", font=self.font, fill="white")
-
-            for i, item in enumerate(self.audio_menu_options):
-                y_pos = 16 + (i * 12)
-                prefix = ">" if i == self.audio_menu_selection else " "
-                draw.text((0, y_pos), f"{prefix} {item}", font=self.font, fill="white")
-
-            # Draw volume slider
-            if self.audio_menu_selection == 1:
-                # Volume slider (48 pixels wide)
-                slider_y = 16 + 12 + 4
-                slider_width = 48
-
-                # Calculate filled width based on volume value
-                filled_width = int((self.volume_value / 100) * slider_width)
-
-                draw.rectangle(
-                    (50, slider_y, 50 + slider_width, slider_y + 6), outline="white"
-                )
-
-                if filled_width > 0:
-                    draw.rectangle(
-                        (50, slider_y, 50 + filled_width, slider_y + 6),
-                        fill="white" if self.adjusting_volume else "white",
-                        outline="white",
-                    )
-
-                # Show volume percentage
-                draw.text(
-                    (105, slider_y),
-                    f"{self.volume_value}%",
-                    font=self.font,
-                    fill="white",
-                )
-
-            # Draw current output device
-            if self.audio_menu_selection == 2:
-                current_device = self.audio_output_options[self.audio_output_selection]
-                draw.text(
-                    (60, 30 + 24), f"< {current_device} >", font=self.font, fill="white"
-                )
