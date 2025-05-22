@@ -48,7 +48,7 @@ class AudioPlayer:
         self.reader_active = True
         self.media_path = media_path
         self.audio_thread = None
-        
+
         # Initialize volume to default value
         default_volume = int(os.getenv("DEFAULT_VOLUME", "25"))
         self.current_volume = default_volume

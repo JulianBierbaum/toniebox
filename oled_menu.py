@@ -216,25 +216,33 @@ class OLEDMenu:
 
     def display_menu(self):
         logger.debug("Displaying main menu")
-        self._safe_draw(lambda draw: (
-            draw.text((0, 0), "RFID Audio Player", font=self.font, fill="white"),
-            self._draw_menu_items(draw, self.menu_options, self.menu_selection)
-        ))
+        self._safe_draw(
+            lambda draw: (
+                draw.text((0, 0), "RFID Audio Player", font=self.font, fill="white"),
+                self._draw_menu_items(draw, self.menu_options, self.menu_selection),
+            )
+        )
 
     def display_yes_no_menu(self):
         logger.debug("Displaying yes/no menu")
-        self._safe_draw(lambda draw: (
-            draw.text((0, 0), "Overwrite?", font=self.font, fill="white"),
-            draw.text((0, 16), "Entry exists", font=self.font, fill="white"),
-            self._draw_menu_items(draw, self.yes_no_options, self.yes_no_selection, start_y=32)
-        ))
+        self._safe_draw(
+            lambda draw: (
+                draw.text((0, 0), "Overwrite?", font=self.font, fill="white"),
+                draw.text((0, 16), "Entry exists", font=self.font, fill="white"),
+                self._draw_menu_items(
+                    draw, self.yes_no_options, self.yes_no_selection, start_y=32
+                ),
+            )
+        )
 
     def display_file_menu(self, files):
         logger.debug(f"Displaying file menu with {len(files)} files")
-        self._safe_draw(lambda draw: (
-            draw.text((0, 0), "Files:", font=self.font, fill="white"),
-            self._draw_menu_items(draw, files, self.file_selection)
-        ))
+        self._safe_draw(
+            lambda draw: (
+                draw.text((0, 0), "Files:", font=self.font, fill="white"),
+                self._draw_menu_items(draw, files, self.file_selection),
+            )
+        )
 
     def display_current_audio(self, current_audio):
         logger.debug(f"Displaying current audio: {current_audio}")
@@ -244,7 +252,9 @@ class OLEDMenu:
             if current_audio:
                 if len(current_audio) > 18:
                     draw.text((0, 16), current_audio[:18], font=self.font, fill="white")
-                    draw.text((0, 28), current_audio[18:36], font=self.font, fill="white")
+                    draw.text(
+                        (0, 28), current_audio[18:36], font=self.font, fill="white"
+                    )
                 else:
                     draw.text((0, 16), current_audio, font=self.font, fill="white")
             else:
@@ -255,10 +265,14 @@ class OLEDMenu:
 
     def display_audio_output_menu(self):
         logger.debug("Displaying audio output menu")
-        self._safe_draw(lambda draw: (
-            draw.text((0, 0), "Audio Output:", font=self.font, fill="white"),
-            self._draw_menu_items(draw, self.audio_output_options, self.audio_output_selection)
-        ))
+        self._safe_draw(
+            lambda draw: (
+                draw.text((0, 0), "Audio Output:", font=self.font, fill="white"),
+                self._draw_menu_items(
+                    draw, self.audio_output_options, self.audio_output_selection
+                ),
+            )
+        )
 
     def display_message(self, message):
         logger.debug(f"Displaying message: {message[:20]}...")
@@ -285,7 +299,9 @@ class OLEDMenu:
                 slider_width = 48
                 filled_width = int((self.volume_value / 100) * slider_width)
 
-                draw.rectangle((50, slider_y, 50 + slider_width, slider_y + 6), outline="white")
+                draw.rectangle(
+                    (50, slider_y, 50 + slider_width, slider_y + 6), outline="white"
+                )
 
                 if filled_width > 0:
                     draw.rectangle(
@@ -293,11 +309,18 @@ class OLEDMenu:
                         fill="white" if self.adjusting_volume else "white",
                         outline="white",
                     )
-                draw.text((105, slider_y), f"{self.volume_value}%", font=self.font, fill="white")
+                draw.text(
+                    (105, slider_y),
+                    f"{self.volume_value}%",
+                    font=self.font,
+                    fill="white",
+                )
 
             if self.audio_menu_selection == 2:
                 current_device = self.audio_output_options[self.audio_output_selection]
-                draw.text((60, 30 + 24), f"< {current_device} >", font=self.font, fill="white")
+                draw.text(
+                    (60, 30 + 24), f"< {current_device} >", font=self.font, fill="white"
+                )
 
         self._safe_draw(draw_callback)
 
