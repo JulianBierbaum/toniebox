@@ -1,16 +1,8 @@
-"""
-RFID Audio Player for Raspberry Pi
-
-A system to play audio files when specific RFID tags are detected,
-with an OLED menu for configuration.
-
-This is the main entry point for the application.
-"""
-
 import signal
 import sys
 import threading as th
 import time
+import os
 
 from audio_player import AudioPlayer
 from logger import get_logger
@@ -28,26 +20,80 @@ def signal_handler(sig, frame):
     """Handle shutdown signals."""
     logger.info(f"Received shutdown signal {sig}, initiating graceful shutdown...")
     shutdown_event.set()
+    # Give some time for cleanup
+    time.sleep(2)
     sys.exit(0)
 
 
+def wait_for_system_ready():
+    """Wait for system components to be ready."""
+    logger.info("Waiting for system to be ready...")
+
+    # Wait for I2C and SPI devices
+    max_wait = 30
+    start_time = time.time()
+
+    while time.time() - start_time < max_wait:
+        i2c_ready = os.path.exists("/dev/i2c-1")
+        spi_ready = os.path.exists("/dev/spidev0.0")
+        gpio_ready = os.path.exists("/dev/gpiomem")
+
+        if i2c_ready and spi_ready and gpio_ready:
+            logger.info("Hardware devices are ready")
+            break
+
+        logger.info(
+            f"Waiting for hardware... I2C: {i2c_ready}, SPI: {spi_ready}, GPIO: {gpio_ready}"
+        )
+        time.sleep(2)
+    else:
+        logger.warning("Timeout waiting for hardware devices, continuing anyway")
+
+    # Additional wait for audio system
+    time.sleep(5)
+
+
 def main():
-    """Main application entry point."""
+    """Main application entry point with improved startup handling."""
     logger.info("Starting RFID Audio Player application")
 
+    # Set up signal handlers
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
     try:
+        # Wait for system to be ready
+        wait_for_system_ready()
+
         # Initialize database
         logger.info("Initializing database")
         init_db()
 
-        # Initialize components
+        # Initialize components with error handling
         logger.info("Initializing application components")
-        audio_player = AudioPlayer()
-        oled_menu = OLEDMenu()
-        rfid_reader = RFIDReader()
+
+        # Initialize audio player first (most likely to fail)
+        try:
+            audio_player = AudioPlayer()
+        except Exception as e:
+            logger.critical(f"Failed to initialize audio player: {e}")
+            logger.info("Retrying audio player initialization in 5 seconds...")
+            time.sleep(5)
+            audio_player = AudioPlayer()
+
+        # Initialize OLED menu
+        try:
+            oled_menu = OLEDMenu()
+        except Exception as e:
+            logger.critical(f"Failed to initialize OLED menu: {e}")
+            raise
+
+        # Initialize RFID reader
+        try:
+            rfid_reader = RFIDReader()
+        except Exception as e:
+            logger.critical(f"Failed to initialize RFID reader: {e}")
+            raise
 
         # Start the RFID reader thread
         logger.info("Starting player thread")
@@ -58,7 +104,10 @@ def main():
         )
         player_thread.start()
 
-        # Main UI loop
+        # Show startup message on OLED
+        oled_menu.display_message("RFID Audio Player\nStarted Successfully!")
+        time.sleep(2)
+
         logger.debug("Entering main UI loop")
         try:
             while not shutdown_event.is_set():
