@@ -1,3 +1,4 @@
 #!/bin/bash
 
-uv run /home/pi/toniebox/main.py
+source /home/pi/toniebox/.venv/bin/activate
+python /home/pi/toniebox/main.py
