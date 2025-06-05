@@ -2,7 +2,6 @@ import signal
 import sys
 import threading as th
 import time
-import os
 
 from audio_player import AudioPlayer
 from logger import get_logger
@@ -24,6 +23,7 @@ def signal_handler(sig, frame):
     time.sleep(2)
     sys.exit(0)
 
+
 def main():
     """Main application entry point with improved startup handling."""
     logger.info("Starting RFID Audio Player application")
@@ -33,7 +33,6 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
 
     try:
-
         # Initialize database
         logger.info("Initializing database")
         init_db()
