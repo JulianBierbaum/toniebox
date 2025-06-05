@@ -27,7 +27,7 @@ Code:
 [Unit]
 Description=Python Audio Player (Continuous)
 After=media-pi.mount
-Wants=network.target sound.target
+Wants=sound.target
 
 [Service]
 Type=simple
@@ -39,7 +39,7 @@ Group=pi
 Environment="DISPLAY=:0"
 Environment="XDG_RUNTIME_DIR=/run/user/1000"
 
-TimeoutStartSec=60
+TimeoutStartSec=30
 TimeoutStopSec=10
 KillMode=process
 SendSIGKILL=yes
