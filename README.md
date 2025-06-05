@@ -55,6 +55,16 @@ WantedBy=multi-user.target
 - (for testing) start the service immediately `sudo systemctl start audio_player.service`
 - check with `systemctl status audio_player.service`
 - run `sudo usermod -a -G audio pi`
+- for start-up time optimization disable these services:
+
+``````bash
+sudo systemctl disable NetworkManager-wait-online.service
+sudo systemctl disable ModemManager.service
+sudo systemctl disable e2scrub_reap.service
+sudo systemctl disable rpi-eeprom-update.service
+sudo systemctl disable bluetooth.service
+sudo systemctl disable avahi-daemon.service
+``````
 
 #### /// Auto-mount USB
 

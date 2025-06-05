@@ -53,6 +53,15 @@ EOT
 echo "Adding pi user to audio group..."
 sudo usermod -a -G audio pi
 
+# Optimize system services for faster boot and reduced overhead
+echo "Optimizing system services..."
+sudo systemctl disable NetworkManager-wait-online.service
+sudo systemctl disable ModemManager.service
+sudo systemctl disable e2scrub_reap.service
+sudo systemctl disable rpi-eeprom-update.service
+sudo systemctl disable bluetooth.service
+sudo systemctl disable avahi-daemon.service
+
 # Enable and start audio player service
 echo "Enabling and starting audio player service..."
 sudo systemctl daemon-reload
