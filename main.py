@@ -24,35 +24,6 @@ def signal_handler(sig, frame):
     time.sleep(2)
     sys.exit(0)
 
-
-def wait_for_system_ready():
-    """Wait for system components to be ready."""
-    logger.info("Waiting for system to be ready...")
-
-    # Wait for I2C and SPI devices
-    max_wait = 30
-    start_time = time.time()
-
-    while time.time() - start_time < max_wait:
-        i2c_ready = os.path.exists("/dev/i2c-1")
-        spi_ready = os.path.exists("/dev/spidev0.0")
-        gpio_ready = os.path.exists("/dev/gpiomem")
-
-        if i2c_ready and spi_ready and gpio_ready:
-            logger.info("Hardware devices are ready")
-            break
-
-        logger.info(
-            f"Waiting for hardware... I2C: {i2c_ready}, SPI: {spi_ready}, GPIO: {gpio_ready}"
-        )
-        time.sleep(2)
-    else:
-        logger.warning("Timeout waiting for hardware devices, continuing anyway")
-
-    # Additional wait for audio system
-    time.sleep(5)
-
-
 def main():
     """Main application entry point with improved startup handling."""
     logger.info("Starting RFID Audio Player application")
@@ -62,8 +33,6 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
 
     try:
-        # Wait for system to be ready
-        wait_for_system_ready()
 
         # Initialize database
         logger.info("Initializing database")
