@@ -1,29 +1,72 @@
-# **/ Toniebox**
-- Toniebox project using a Raspberry PI 4B
-- setup is using Raspberry PI OS Lite (64-Bit)
-<br>
+# Toniebox (Raspberry Pi 4B Project)
 
-- GitHub: `git clone https://github.com/JulianBierbaum/toniebox.git`
-- clone into home dir
+A DIY audio player project inspired by the Toniebox, using a **Raspberry Pi 4B** and **Raspberry Pi OS Lite (64-bit)**.
 
-### // Debugging
-- logs are automatically created under the `logs` directory
-- you can live-watch the logs using `tail -f logs/rfid_player.log`
+---
 
-### // Setup
-- the `setup.sh` script needs to be run in the toniebox directory the first time the player is used after that it is no longer neccesary
-- if the setup file is not working you can follow the steps below:
+## Repository
 
-#### /// General
-- run `uv sync` to install dependencies
-- in the `raspi-config` enable `Interface->SPI` and `Interface->I2C`
+Clone the GitHub repository into your home directory:
 
-#### /// Watchdog script
-- go to `/etc/systemd/system`
-- create `audio_player.service` file
+```bash
+git clone https://github.com/JulianBierbaum/toniebox.git
+```
 
-Code:
-```sh
+---
+
+## Initial Setup
+
+Run the provided `setup.sh` script from within the `toniebox` directory:
+
+```bash
+cd ~/toniebox
+source setup.sh
+```
+
+> If the script fails, follow the manual steps below.
+
+---
+
+## Manual Setup Guide
+
+### 1. Dependency Installation
+
+Install project dependencies with [**uv**](https://github.com/astral-sh/uv):
+
+```bash
+uv sync
+```
+
+### 2. Raspberry Pi Interface Configuration
+
+Enable necessary interfaces:
+
+```bash
+sudo raspi-config
+```
+
+* Navigate to: `Interface Options`
+
+  * Enable **SPI**
+  * Enable **I2C**
+
+---
+
+## Systemd Watchdog Service
+
+Create a `systemd` service to auto-start the player.
+
+### Step-by-step:
+
+1. Create a new file:
+
+```bash
+sudo nano /etc/systemd/system/audio_player.service
+```
+
+2. Add the following content:
+
+```ini
 [Unit]
 Description=Python Audio Player (Continuous)
 After=media-pi.mount
@@ -48,46 +91,97 @@ SendSIGKILL=yes
 WantedBy=multi-user.target
 ```
 
-<br>
+3. Reload and enable the service:
 
-- reload the systemd configuration with `sudo systemctl daemon-reload`
-- enable the service to start on boot `sudo systemctl enable audio_player.service`
-- (for testing) start the service immediately `sudo systemctl start audio_player.service`
-- check with `systemctl status audio_player.service`
-- run `sudo usermod -a -G audio pi`
-- for start-up time optimization disable these services:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable audio_player.service
+```
 
-``````bash
+4. Check status:
+
+```bash
+systemctl status audio_player.service
+```
+
+5. Add the `pi` user to the `audio` group:
+
+```bash
+sudo usermod -a -G audio pi
+```
+
+---
+
+## Boot Optimization
+
+Disable unnecessary services to reduce startup time:
+
+```bash
 sudo systemctl disable NetworkManager-wait-online.service
 sudo systemctl disable ModemManager.service
 sudo systemctl disable e2scrub_reap.service
 sudo systemctl disable rpi-eeprom-update.service
 sudo systemctl disable bluetooth.service
 sudo systemctl disable avahi-daemon.service
-``````
+```
 
-#### /// Auto-mount USB
+---
 
-- get USB_UUID with `sudo blkid /dev/sda1`
-- open `/etc/fstab`
+## USB Auto-Mount
 
-Code:
-``````bash
+1. Identify the UUID of your USB device:
+
+```bash
+sudo blkid /dev/sda1
+```
+
+2. Edit the `/etc/fstab` file:
+
+```bash
+sudo nano /etc/fstab
+```
+
+3. Add the following line (replace `USB_UUID` with the actual UUID):
+
+```fstab
 UUID=USB_UUID /media/pi vfat defaults,noatime,nofail 0 2
-``````
+```
 
-#### /// ALSA config
-Set up ALSA (Advanced Linux Sound Architecture) to work with an external speaker through the MAX98357A amplifier.
+---
 
-- open `/boot/firmware/config.txt`
-- add the code to the file
+## Audio Output Configuration (ALSA + MAX98357A)
 
-Code:
-``````bash
+1. Edit the Raspberry Pi firmware config:
+
+```bash
+sudo nano /boot/firmware/config.txt
+```
+
+2. Add the following:
+
+```bash
 dtparam=audio=on
 dtoverlay=hifiberry-dac,card=1
-``````
+```
 
-- reboot raspberry pi
-- `aplay -l` to verify
+3. Reboot:
 
+```bash
+sudo reboot
+```
+
+4. Verify audio output:
+
+```bash
+aplay -l
+```
+
+---
+
+## Debugging
+
+Logs are written to the `logs` directory. To watch logs live:
+
+```bash
+tail -f logs/rfid_player.log
+```
