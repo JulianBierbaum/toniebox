@@ -37,7 +37,16 @@ Install project dependencies with [**uv**](https://github.com/astral-sh/uv):
 uv sync
 ```
 
-### 2. Raspberry Pi Interface Configuration
+### 2. Configuration
+
+Create a `.env` file from the example (or manually):
+
+```bash
+cp .env.example .env
+# Edit .env to set I2C_ADDRESS, USB_MOUNT_POINT, etc.
+```
+
+### 3. Raspberry Pi Interface Configuration
 
 Enable necessary interfaces:
 
@@ -50,13 +59,9 @@ sudo raspi-config
   * Enable **SPI**
   * Enable **I2C**
 
----
-
-## Systemd Watchdog Service
+### 4. Systemd Watchdog Service
 
 Create a `systemd` service to auto-start the player.
-
-### Step-by-step:
 
 1. Create a new file:
 
@@ -64,21 +69,21 @@ Create a `systemd` service to auto-start the player.
 sudo nano /etc/systemd/system/audio_player.service
 ```
 
-2. Add the following content:
+2. Add the following content (replace `<USER>` and `<PATH_TO_PROJECT>`):
 
 ```ini
 [Unit]
 Description=Python Audio Player (Continuous)
-After=media-pi.mount
+After=media-usb.mount
 Wants=sound.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/pi/toniebox
-ExecStart=/usr/bin/bash /home/pi/toniebox/start_player.sh
+WorkingDirectory=/home/<USER>/toniebox
+ExecStart=/usr/bin/bash /home/<USER>/toniebox/start_player.sh
 Restart=on-failure
-User=pi
-Group=pi
+User=<USER>
+Group=<USER>
 Environment="DISPLAY=:0"
 Environment="XDG_RUNTIME_DIR=/run/user/1000"
 
@@ -98,36 +103,13 @@ sudo systemctl daemon-reload
 sudo systemctl enable audio_player.service
 ```
 
-4. Check status:
+4. Add your user to the `audio` group:
 
 ```bash
-systemctl status audio_player.service
+sudo usermod -a -G audio $(whoami)
 ```
 
-5. Add the `pi` user to the `audio` group:
-
-```bash
-sudo usermod -a -G audio pi
-```
-
----
-
-## Boot Optimization
-
-Disable unnecessary services to reduce startup time:
-
-```bash
-sudo systemctl disable NetworkManager-wait-online.service
-sudo systemctl disable ModemManager.service
-sudo systemctl disable e2scrub_reap.service
-sudo systemctl disable rpi-eeprom-update.service
-sudo systemctl disable bluetooth.service
-sudo systemctl disable avahi-daemon.service
-```
-
----
-
-## USB Auto-Mount
+### 5. USB Auto-Mount
 
 1. Identify the UUID of your USB device:
 
@@ -135,33 +117,35 @@ sudo systemctl disable avahi-daemon.service
 sudo blkid /dev/sda1
 ```
 
-2. Edit the `/etc/fstab` file:
+2. Edit `/etc/fstab`:
 
 ```bash
 sudo nano /etc/fstab
 ```
 
-3. Add the following line (replace `USB_UUID` with the actual UUID):
+3. Add the following line (replace `USB_UUID`):
 
 ```fstab
-UUID=USB_UUID /media/pi vfat defaults,noatime,nofail 0 2
+UUID=USB_UUID /media/usb vfat defaults,noatime,nofail 0 2
 ```
 
----
+### 6. Audio & I2C Configuration
 
-## Audio Output Configuration (ALSA + MAX98357A)
-
-1. Edit the Raspberry Pi firmware config:
+1. Edit `/boot/firmware/config.txt`:
 
 ```bash
 sudo nano /boot/firmware/config.txt
 ```
 
-2. Add the following:
+2. Add/Update the following:
 
 ```bash
+# Audio
 dtparam=audio=on
 dtoverlay=hifiberry-dac,card=1
+
+# High-Speed I2C (for smooth UI)
+dtparam=i2c_arm_baudrate=400000
 ```
 
 3. Reboot:
@@ -169,14 +153,6 @@ dtoverlay=hifiberry-dac,card=1
 ```bash
 sudo reboot
 ```
-
-4. Verify audio output:
-
-```bash
-aplay -l
-```
-
----
 
 ## Debugging
 

@@ -15,7 +15,7 @@ from luma.oled.device import sh1106
 from luma.core.error import DeviceNotFoundError
 from PIL import ImageFont
 
-from logger import get_logger
+from .logger import get_logger
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -76,7 +76,8 @@ class OLEDMenu:
 
     def _initialize_display(self):
         try:
-            self.serial = i2c(port=1, address=0x3C)
+            i2c_address = int(os.getenv("I2C_ADDRESS", "0x3C"), 16)
+            self.serial = i2c(port=1, address=i2c_address)
             self.device = sh1106(self.serial)
             self.font = ImageFont.load_default()
             logger.info("OLED display initialized successfully")

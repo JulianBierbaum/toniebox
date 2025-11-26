@@ -13,8 +13,8 @@ from dotenv import load_dotenv
 
 import pygame as pg
 
-from logger import get_logger
-from model import RFIDAudio, Session
+from .logger import get_logger
+from .model import RFIDAudio, Session
 
 logger = get_logger(__name__)
 
@@ -107,7 +107,7 @@ class AudioPlayer:
         Play audio associated with the given RFID ID.
 
         Args:
-            file_id (str): The RFID tag ID to play audio for
+            file_id (int): The RFID tag ID to play audio for
         """
         audio_file = self.get_file(file_id)
         if not audio_file:
@@ -196,13 +196,18 @@ class AudioPlayer:
         Get the audio filename associated with an RFID ID.
 
         Args:
-            file_id (str): The RFID tag ID to look up
+            file_id (int): The RFID tag ID to look up
 
         Returns:
             str or None: The associated audio filename or None if not found
         """
-        record = self.session.query(RFIDAudio).filter_by(id=file_id).first()
-        return record.file if record else None
+        # Create a new session for thread safety
+        session = Session()
+        try:
+            record = session.query(RFIDAudio).filter_by(id=file_id).first()
+            return record.file if record else None
+        finally:
+            session.close()
 
     def get_files_in_folder(self):
         """
@@ -229,20 +234,27 @@ class AudioPlayer:
         Associate an audio file with an RFID ID in the database.
 
         Args:
-            file_id (str): The RFID tag ID
+            file_id (int): The RFID tag ID
             file_name (str): The audio filename to associate with the ID
         """
-        record = self.session.query(RFIDAudio).filter_by(id=file_id).first()
-        if record:
-            logger.info(
-                f"Updating RFID mapping: ID {file_id} from {record.file} to {file_name}"
-            )
-            record.file = file_name
-        else:
-            logger.info(f"Adding new RFID mapping: ID {file_id} to {file_name}")
-            record = RFIDAudio(id=file_id, file=file_name)
-            self.session.add(record)
-        self.session.commit()
+        session = Session()
+        try:
+            record = session.query(RFIDAudio).filter_by(id=file_id).first()
+            if record:
+                logger.info(
+                    f"Updating RFID mapping: ID {file_id} from {record.file} to {file_name}"
+                )
+                record.file = file_name
+            else:
+                logger.info(f"Adding new RFID mapping: ID {file_id} to {file_name}")
+                record = RFIDAudio(id=file_id, file=file_name)
+                session.add(record)
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
 
     def get_current_audio(self):
         """
@@ -364,7 +376,7 @@ class AudioPlayer:
                     if id_val != current_id:
                         current_id = id_val
                         logger.info(f"New RFID tag detected: {id_val}")
-                        self.play(str(id_val))
+                        self.play(id_val)
                         time.sleep(2)  # Debounce time
 
                 if id_val is None:

@@ -12,7 +12,7 @@ import os
 import RPi.GPIO as GPIO
 from mfrc522 import SimpleMFRC522
 
-from logger import get_logger
+from .logger import get_logger
 from dotenv import load_dotenv
 
 load_dotenv()

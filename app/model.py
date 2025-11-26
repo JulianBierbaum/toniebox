@@ -21,7 +21,7 @@ class RFIDAudio(Base):
     Database model for mapping RFID IDs to audio files.
 
     Attributes:
-        id (str): The RFID tag ID as a string (primary key)
+        id (int): The RFID tag ID as an integer (primary key)
         file (str): The filename of the associated audio file
     """
 

@@ -3,11 +3,11 @@ import sys
 import threading as th
 import time
 
-from audio_player import AudioPlayer
-from logger import get_logger
-from model import init_db
-from oled_menu import OLEDMenu
-from rfid_reader import RFIDReader
+from .audio_player import AudioPlayer
+from .logger import get_logger
+from .model import init_db
+from .oled_menu import OLEDMenu
+from .rfid_reader import RFIDReader
 
 # Initialize logger
 logger = get_logger(__name__)
