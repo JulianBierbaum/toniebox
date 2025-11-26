@@ -94,6 +94,7 @@ def main():
                     logger.debug("Entering Currently Playing menu")
                     oled_menu.option_confirmed = False
                     oled_menu.current_menu = "currently_playing"
+                    oled_menu.needs_redraw = True
                     while (
                         not oled_menu.option_confirmed and not shutdown_event.is_set()
                     ):
@@ -101,12 +102,14 @@ def main():
                         oled_menu.display_current_audio(current)
                         time.sleep(0.5)
                     oled_menu.current_menu = "main"
+                    oled_menu.needs_redraw = True
 
                 elif oled_menu.menu_selection == 1:  # Add/Update Audio
                     logger.info("Entering Add/Update Audio menu")
                     audio_player.stop()
                     audio_player.reader_active = False
                     oled_menu.current_menu = "add_update"
+                    oled_menu.needs_redraw = True
 
                     try:
                         oled_menu.display_message("Hold RFID chip to reader")
@@ -347,13 +350,17 @@ def main():
                     oled_menu.current_menu = "main"
 
         except KeyboardInterrupt:
-            logger.info("Application terminated by user via keyboard")
+            logger.info("Keyboard interrupt received")
         except Exception as e:
-            logger.critical(f"Unexpected error in main loop: {str(e)}", exc_info=True)
+            logger.critical(f"Unhandled exception in main loop: {e}", exc_info=True)
         finally:
-            logger.info("Cleaning up resources")
-            audio_player.stop()
+            logger.info("Cleaning up...")
             shutdown_event.set()
+            if 'oled_menu' in locals():
+                oled_menu.stop()
+            if 'audio_player' in locals():
+                audio_player.stop()
+            logger.info("Application shutdown complete")
 
     except Exception as e:
         logger.critical(f"Fatal initialization error: {str(e)}", exc_info=True)

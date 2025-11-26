@@ -14,6 +14,7 @@ from luma.core.render import canvas
 from luma.oled.device import sh1106
 from luma.core.error import DeviceNotFoundError
 from PIL import ImageFont
+import threading
 
 from .logger import get_logger
 from dotenv import load_dotenv
@@ -32,6 +33,13 @@ class OLEDMenu:
     ):
         logger.info("Initializing OLED menu system")
         self.display_available = self._initialize_display()
+        
+        # Threading synchronization
+        self.lock = threading.Lock()
+        self.shutdown_event = threading.Event()
+        self.needs_redraw = True
+        
+        # Menu states
 
         # Menu states
         self.menu_options = [
@@ -67,12 +75,31 @@ class OLEDMenu:
                 confirm_pin, bounce_time=float(self.encoder_bounce_time)
             )
 
-            self.encoder.when_rotated = self.handle_rotation
             self.confirm.when_pressed = self.on_confirm_pressed
             logger.info("Input controls initialized successfully")
+            
+            # Start render thread
+            self.render_thread = threading.Thread(target=self._render_loop, daemon=True)
+            self.render_thread.start()
+            logger.info("Render thread started")
         except Exception as e:
             logger.error(f"Failed to initialize input controls: {e}")
             raise
+
+    def _render_loop(self):
+        """Background thread for rendering the display."""
+        while not self.shutdown_event.is_set():
+            if self.display_available and self.needs_redraw:
+                with self.lock:
+                    self.update_display()
+                self.needs_redraw = False
+            time.sleep(0.033)  # Cap at ~30 FPS
+
+    def stop(self):
+        """Stop the render thread."""
+        self.shutdown_event.set()
+        if hasattr(self, 'render_thread'):
+            self.render_thread.join(timeout=1.0)
 
     def _initialize_display(self):
         try:
@@ -132,7 +159,7 @@ class OLEDMenu:
                         self._change_selection(-1)  # Up
 
             self.encoder.steps = 0
-            self.update_display()
+            self.needs_redraw = True
 
     def _change_selection(self, direction):
         """
@@ -178,7 +205,8 @@ class OLEDMenu:
 
     def on_confirm_pressed(self):
         """Handle confirmation"""
-        self.option_confirmed = True
+        with self.lock:
+            self.option_confirmed = True
         logger.debug(f"Selection confirmed in menu: {self.current_menu}")
 
     def _draw_menu_items(
@@ -387,10 +415,17 @@ class OLEDMenu:
         logger.debug(f"Waiting for confirmation with timeout: {timeout}s")
         self.option_confirmed = False
         start_time = time.time()
-        while not self.option_confirmed:
+        while not confirmed:
             if timeout and (time.time() - start_time > timeout):
                 logger.debug("Confirmation wait timed out")
                 return False
-            time.sleep(0.1)
+            
+            with self.lock:
+                if self.option_confirmed:
+                    confirmed = True
+            
+            if not confirmed:
+                time.sleep(0.05)
+                
         logger.debug("Received confirmation")
         return True
