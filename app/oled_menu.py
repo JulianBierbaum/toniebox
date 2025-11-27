@@ -27,9 +27,9 @@ logger = get_logger(__name__)
 class OLEDMenu:
     def __init__(
         self,
-        encoder_clk=os.getenv("ENCODER_CLK"),
-        encoder_dt=os.getenv("ENCODER_DT"),
-        confirm_pin=os.getenv("ENCODER_CONFIRM"),
+        encoder_clk=int(os.getenv("ENCODER_CLK")),
+        encoder_dt=int(os.getenv("ENCODER_DT")),
+        confirm_pin=int(os.getenv("ENCODER_CONFIRM")),
     ):
         logger.info("Initializing OLED menu system")
         self.display_available = self._initialize_display()
@@ -67,10 +67,11 @@ class OLEDMenu:
         logger.info(f"Loaded DEFAULT_VOLUME: {self.volume_value}")
 
         try:
-            self.encoder_bounce_time = os.getenv("ENCODER_BOUNCE_TIME", 0.02)
+            self.encoder_bounce_time = float(os.getenv("ENCODER_BOUNCE_TIME", "0.02"))
             self.encoder = RotaryEncoder(
                 encoder_clk, encoder_dt, bounce_time=float(self.encoder_bounce_time)
             )
+            self.encoder.when_rotated = self.handle_rotation
             self.confirm = Button(
                 confirm_pin, bounce_time=float(self.encoder_bounce_time)
             )
@@ -415,17 +416,18 @@ class OLEDMenu:
         logger.debug(f"Waiting for confirmation with timeout: {timeout}s")
         self.option_confirmed = False
         start_time = time.time()
-        while not confirmed:
+
+        while True:
+            # Check for timeout
             if timeout and (time.time() - start_time > timeout):
                 logger.debug("Confirmation wait timed out")
                 return False
-            
+
+            # Check if confirmed (thread-safe)
             with self.lock:
                 if self.option_confirmed:
-                    confirmed = True
-            
-            if not confirmed:
-                time.sleep(0.05)
-                
-        logger.debug("Received confirmation")
-        return True
+                    logger.debug("Received confirmation")
+                    return True
+
+            # Small sleep to avoid busy-waiting
+            time.sleep(0.05)

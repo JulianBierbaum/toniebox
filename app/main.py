@@ -128,7 +128,7 @@ def main():
                             continue
 
                         logger.info(f"Detected RFID tag: {id_val}")
-                        existing = audio_player.get_file(str(id_val))
+                        existing = audio_player.get_file(id_val)
                         if existing:
                             oled_menu.display_message(
                                 f"Tag ID: {id_val}\nCurrent: {existing}"
@@ -177,16 +177,16 @@ def main():
 
                         selected_file = files[oled_menu.file_selection]
                         logger.info(f"Mapping tag {id_val} to file {selected_file}")
-                        audio_player.add_file_to_db(str(id_val), selected_file)
+                        audio_player.add_file_to_db(id_val, selected_file)
 
                         oled_menu.display_message(
-                            f"Added: {selected_file}\nID: {str(id_val)}"
+                            f"Added: {selected_file}\nID: {id_val}"
                         )
                         time.sleep(2)
 
                     except Exception as e:
-                        logger.error(f"Error in Add/Update Audio menu: {str(e)}")
-                        oled_menu.display_message(f"Error: {str(e)}")
+                        logger.error(f"Error in Add/Update Audio menu: {e}")
+                        oled_menu.display_message(f"Error: {e}")
                         time.sleep(2)
                     finally:
                         logger.debug("Resetting reader active state")
@@ -230,8 +230,8 @@ def main():
                                 oled_menu.display_current_audio(current)
                                 time.sleep(0.5)
                         except Exception as e:
-                            logger.error(f"Playback error: {str(e)}")
-                            oled_menu.display_message(f"Playback error: {str(e)}")
+                            logger.error(f"Playback error: {e}")
+                            oled_menu.display_message(f"Playback error: {e}")
                             time.sleep(2)
                         finally:
                             logger.debug("Stopping playback and resetting reader")
@@ -363,7 +363,7 @@ def main():
             logger.info("Application shutdown complete")
 
     except Exception as e:
-        logger.critical(f"Fatal initialization error: {str(e)}", exc_info=True)
+        logger.critical(f"Fatal initialization error: {e}", exc_info=True)
         sys.exit(1)
 
 

@@ -117,9 +117,9 @@ class RFIDReader:
 
     def read_with_timeout(
         self,
-        timeout=os.getenv("READ_TIMEOUT"),
+        timeout=float(os.getenv("READ_TIMEOUT", "30")),
         check_interval=0.1,
-        max_retries=os.getenv("READ_WITH_TIMEOUT_MAX_RETRIES"),
+        max_retries=int(os.getenv("READ_WITH_TIMEOUT_MAX_RETRIES", "3")),
     ):
         """
         Read an RFID tag with timeout and error handling.

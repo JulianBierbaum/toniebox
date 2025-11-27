@@ -82,7 +82,7 @@ class AudioPlayer:
                 logger.info(f"Audio initialized successfully on device: {dev_name}")
                 return True
             except Exception as e:
-                logger.warning(f"Failed to initialize audio on {dev_name}: {str(e)}")
+                logger.warning(f"Failed to initialize audio on {dev_name}: {e}")
                 return False
 
         # Try to initialize the requested device without falling back
@@ -167,7 +167,7 @@ class AudioPlayer:
                 pg.time.Clock().tick(10)
 
         except Exception as e:
-            logger.error(f"Audio playback error: {str(e)}")
+            logger.error(f"Audio playback error: {e}")
         finally:
             # Only clear current_audio if it hasn't been changed
             with self.audio_lock:
@@ -185,7 +185,7 @@ class AudioPlayer:
             pg.mixer.music.stop()
             logger.debug("Stopped audio playback")
         except Exception as e:
-            logger.debug(f"Error stopping playback: {str(e)}")
+            logger.debug(f"Error stopping playback: {e}")
 
         # Wait for thread to finish if it exists and is alive
         if self.audio_thread and self.audio_thread.is_alive():
@@ -294,7 +294,7 @@ class AudioPlayer:
                 return False, error_msg
 
         except Exception as e:
-            error_msg = str(e)
+            error_msg = e
             logger.error(f"Error switching audio output: {error_msg}")
             return False, error_msg
 
@@ -328,7 +328,7 @@ class AudioPlayer:
 
             return True
         except Exception as e:
-            logger.error(f"Error setting volume: {str(e)}")
+            logger.error(f"Error setting volume: {e}")
             return False
 
     def get_volume(self):
@@ -391,7 +391,7 @@ class AudioPlayer:
                     none_counter = 0
                     current_id = 0
             except Exception as e:
-                logger.error(f"Error in RFID reading loop: {str(e)}")
+                logger.error(f"Error in RFID reading loop: {e}")
                 # Reset counters on error
                 none_counter = 0
                 current_id = 0
@@ -406,9 +406,9 @@ class AudioPlayer:
             self.stop()
             pg.mixer.quit()
         except Exception as e:
-            logger.debug(f"Error during cleanup: {str(e)}")
+            logger.debug(f"Error during cleanup: {e}")
 
         try:
             self.session.close()
         except Exception as e:
-            logger.debug(f"Error closing session: {str(e)}")
+            logger.debug(f"Error closing session: {e}")
