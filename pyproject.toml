@@ -2,7 +2,7 @@
 name = "toniebox"
 version = "0.7.0"
 description = "Toniebox project for Raspberry Pi"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 
 dependencies = [
     "pygame>=2.6.1",

@@ -17,7 +17,7 @@ def test_encoder():
         return
 
     try:
-        bounce_time = float(os.getenv("ENCODER_BOUNCE_TIME", 0.05))
+        bounce_time = float(os.getenv("ENCODER_BOUNCE_TIME", 0.2))
         encoder = RotaryEncoder(int(clk), int(dt), bounce_time=bounce_time)
         button = Button(int(confirm), bounce_time=bounce_time)
         
