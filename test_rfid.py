@@ -1,39 +1,30 @@
-import RPi.GPIO as GPIO
 import time
-import os
-from dotenv import load_dotenv
+import RPi.GPIO as GPIO
+from mfrc522 import SimpleMFRC522
 
-load_dotenv()
-
-CLK = int(os.getenv("ENCODER_CLK", 27))
-DT = int(os.getenv("ENCODER_DT", 22))
-
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(CLK, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(DT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
-print(f"Monitoring pins CLK={CLK} and DT={DT} (Ctrl+C to stop)")
-print("These are configured with PULL_UP. They should read 1 normally.")
-print("If you rotate the encoder, they should briefly flicker to 0.")
-
-try:
-    last_clk = GPIO.input(CLK)
-    last_dt = GPIO.input(DT)
+def test_rfid():
+    print("Initializing RFID Reader (MFRC522)...")
+    reader = SimpleMFRC522()
     
-    print(f"Initial State -> CLK: {last_clk}, DT: {last_dt}")
+    print("Reader initialized. Please place a tag near the reader. Press Ctrl+C to exit.")
     
-    while True:
-        clk_state = GPIO.input(CLK)
-        dt_state = GPIO.input(DT)
-        
-        if clk_state != last_clk or dt_state != last_dt:
-            print(f"CHANGE detected! CLK: {clk_state}, DT: {dt_state}")
-            last_clk = clk_state
-            last_dt = dt_state
+    try:
+        while True:
+            print("Waiting for tag...")
+            id_val, text = reader.read()
+            print(f"Tag Detected!")
+            print(f"ID: {id_val}")
+            print(f"Text: {text}")
+            print("-" * 20)
+            time.sleep(1) # Prevent rapid re-reading
             
-        time.sleep(0.001)
+    except KeyboardInterrupt:
+        print("\nTest cancelled by user.")
+    except Exception as e:
+        print(f"Error testing RFID reader: {e}")
+    finally:
+        GPIO.cleanup()
+        print("GPIO cleaned up.")
 
-except KeyboardInterrupt:
-    print("\nExiting...")
-finally:
-    GPIO.cleanup()
+if __name__ == "__main__":
+    test_rfid()
