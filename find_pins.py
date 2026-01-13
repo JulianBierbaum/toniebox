@@ -1,39 +1,50 @@
 import RPi.GPIO as GPIO
 import time
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-
-CLK = int(os.getenv("ENCODER_CLK", 27))
-DT = int(os.getenv("ENCODER_DT", 22))
+# List of standard GPIO pins (BCM numbering) on Raspberry Pi
+# Excluding power/ground pins.
+ALL_PINS = [
+    2, 3, 4, 17, 27, 22, 10, 9, 11, 
+    5, 6, 13, 19, 26, 14, 15, 18, 
+    23, 24, 25, 8, 7, 12, 16, 20, 21
+]
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(CLK, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(DT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-print(f"Monitoring pins CLK={CLK} and DT={DT} (Ctrl+C to stop)")
-print("These are configured with PULL_UP. They should read 1 normally.")
-print("If you rotate the encoder, they should briefly flicker to 0.")
+# Store initial states
+pin_states = {}
+failed_pins = []
+
+print("Setting up pins...")
+for pin in ALL_PINS:
+    try:
+        # Configure as Input with Pull Up (assuming active-low logic like the encoder)
+        GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        pin_states[pin] = GPIO.input(pin)
+    except Exception as e:
+        print(f"Skipping Pin {pin} (busy or unavailable)")
+        failed_pins.append(pin)
+
+# Remove failed pins from monitoring list
+for p in failed_pins:
+    ALL_PINS.remove(p)
+
+print("\n--- PIN MONITOR STARTED ---")
+print("Rotate your encoder now.")
+print("I will tell you if ANY pin changes state.")
+print("Press Ctrl+C to stop.\n")
 
 try:
-    last_clk = GPIO.input(CLK)
-    last_dt = GPIO.input(DT)
-    
-    print(f"Initial State -> CLK: {last_clk}, DT: {last_dt}")
-    
     while True:
-        clk_state = GPIO.input(CLK)
-        dt_state = GPIO.input(DT)
+        for pin in ALL_PINS:
+            val = GPIO.input(pin)
+            if val != pin_states[pin]:
+                print(f"ACTIVITY DETECTED! Pin {pin} changed to {val}")
+                pin_states[pin] = val
         
-        if clk_state != last_clk or dt_state != last_dt:
-            print(f"CHANGE detected! CLK: {clk_state}, DT: {dt_state}")
-            last_clk = clk_state
-            last_dt = dt_state
-            
-        time.sleep(0.001)
+        time.sleep(0.01)
 
 except KeyboardInterrupt:
-    print("\nExiting...")
+    print("\nStopped.")
 finally:
     GPIO.cleanup()
