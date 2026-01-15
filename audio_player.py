@@ -85,17 +85,37 @@ class AudioPlayer:
                 logger.warning(f"Failed to initialize audio on {dev_name}: {str(e)}")
                 return False
 
-        # Try to initialize the requested device without falling back
+        # Try to initialize the requested device
+        success = False
         if device == "aux":
             success = try_device("aux", "hw:0,0")
             if success:
                 self.current_output_device = "aux"
-            return success
         else:  # device == "speaker"
             success = try_device("speaker", "hw:1,0")
             if success:
                 self.current_output_device = "speaker"
-            return success
+
+        if success:
+            return True
+
+        # Fallback to system default if specific device fails
+        logger.warning(f"Specific device {device} failed. Attempting system default fallback.")
+        
+        # Clean up environment variables to let SDL choose default
+        if "AUDIODEV" in os.environ:
+            del os.environ["AUDIODEV"]
+        if "SDL_AUDIODRIVER" in os.environ:
+            del os.environ["SDL_AUDIODRIVER"]
+
+        try:
+            pg.mixer.init()
+            self.current_output_device = "default"
+            logger.info("Audio initialized using system default settings")
+            return True
+        except Exception as e:
+            logger.error(f"Fallback audio initialization failed: {str(e)}")
+            return False
 
     def play_file(self, filename):
         """Play an audio file directly by filename"""
