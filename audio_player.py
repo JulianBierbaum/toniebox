@@ -170,6 +170,8 @@ class AudioPlayer:
         """
         try:
             full_path = os.path.join(self.media_path, audio_file)
+            logger.info(f"[PLAYBACK] Starting playback thread for: {audio_file}")
+            logger.debug(f"[PLAYBACK] Full path: {full_path}")
 
             # Check if file exists before trying to play it
             if not os.path.exists(full_path):
@@ -178,22 +180,49 @@ class AudioPlayer:
                     self.current_audio = f"File not found: {audio_file}"
                 return
 
+            # Check file size and permissions
+            file_size = os.path.getsize(full_path)
+            logger.debug(f"[PLAYBACK] File size: {file_size} bytes")
+            
+            # Check if mixer is initialized
+            if not pg.mixer.get_init():
+                logger.error(f"[PLAYBACK] Mixer not initialized!")
+                return
+                
+            logger.debug(f"[PLAYBACK] Mixer initialized: {pg.mixer.get_init()}")
+
+            # Load and play
+            logger.debug(f"[PLAYBACK] Loading audio file...")
             pg.mixer.music.load(full_path)
+            logger.debug(f"[PLAYBACK] Audio file loaded successfully")
+            
+            logger.debug(f"[PLAYBACK] Starting playback...")
             pg.mixer.music.play()
-            logger.debug(f"Started playback of: {audio_file}")
+            logger.info(f"[PLAYBACK] Playback started for: {audio_file}")
 
             # Keep thread alive until playback finishes or is interrupted
+            tick_count = 0
             while pg.mixer.music.get_busy() and not self.playback_event.is_set():
                 pg.time.Clock().tick(10)
+                tick_count += 1
+                # Log every 5 seconds (50 ticks at 10 Hz)
+                if tick_count % 50 == 0:
+                    logger.debug(f"[PLAYBACK] Still playing... ({tick_count // 10}s elapsed)")
+            
+            # Log why we exited the loop
+            if not pg.mixer.music.get_busy():
+                logger.info(f"[PLAYBACK] Playback completed naturally for: {audio_file}")
+            elif self.playback_event.is_set():
+                logger.info(f"[PLAYBACK] Playback interrupted by stop event for: {audio_file}")
 
         except Exception as e:
-            logger.error(f"Audio playback error: {str(e)}")
+            logger.error(f"[PLAYBACK] Audio playback error: {str(e)}", exc_info=True)
         finally:
             # Only clear current_audio if it hasn't been changed
             with self.audio_lock:
                 if self.current_audio == audio_file:
                     self.current_audio = None
-            logger.debug(f"Playback finished or stopped: {audio_file}")
+            logger.info(f"[PLAYBACK] Playback thread finished for: {audio_file}")
 
     def stop(self):
         """Stop any currently playing audio."""
