@@ -4,9 +4,32 @@ import time
 # List of standard GPIO pins (BCM numbering) on Raspberry Pi
 # Excluding power/ground pins.
 ALL_PINS = [
-    2, 3, 4, 17, 27, 22, 10, 9, 11, 
-    5, 6, 13, 19, 26, 14, 15, 18, 
-    23, 24, 25, 8, 7, 12, 16, 20, 21
+    2,
+    3,
+    4,
+    17,
+    27,
+    22,
+    10,
+    9,
+    11,
+    5,
+    6,
+    13,
+    19,
+    26,
+    14,
+    15,
+    18,
+    23,
+    24,
+    25,
+    8,
+    7,
+    12,
+    16,
+    20,
+    21,
 ]
 
 GPIO.setmode(GPIO.BCM)
@@ -21,7 +44,7 @@ for pin in ALL_PINS:
         # Configure as Input with Pull Up (assuming active-low logic like the encoder)
         GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         pin_states[pin] = GPIO.input(pin)
-    except Exception as e:
+    except Exception:
         print(f"Skipping Pin {pin} (busy or unavailable)")
         failed_pins.append(pin)
 
@@ -41,7 +64,7 @@ try:
             if val != pin_states[pin]:
                 print(f"ACTIVITY DETECTED! Pin {pin} changed to {val}")
                 pin_states[pin] = val
-        
+
         time.sleep(0.01)
 
 except KeyboardInterrupt:
