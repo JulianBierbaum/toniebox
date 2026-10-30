@@ -13,8 +13,8 @@ from dotenv import load_dotenv
 
 import pygame as pg
 
-from logger import get_logger
-from model import RFIDAudio, Session
+from .logger import get_logger
+from .model import RFIDAudio, Session
 
 logger = get_logger(__name__)
 
@@ -82,7 +82,7 @@ class AudioPlayer:
                 logger.info(f"Audio initialized successfully on device: {dev_name}")
                 return True
             except Exception as e:
-                logger.warning(f"Failed to initialize audio on {dev_name}: {str(e)}")
+                logger.warning(f"Failed to initialize audio on {dev_name}: {e}")
                 return False
 
         # Try to initialize the requested device
@@ -127,7 +127,7 @@ class AudioPlayer:
         Play audio associated with the given RFID ID.
 
         Args:
-            file_id (str): The RFID tag ID to play audio for
+            file_id (int): The RFID tag ID to play audio for
         """
         audio_file = self.get_file(file_id)
         if not audio_file:
@@ -216,7 +216,7 @@ class AudioPlayer:
                 logger.info(f"[PLAYBACK] Playback interrupted by stop event for: {audio_file}")
 
         except Exception as e:
-            logger.error(f"[PLAYBACK] Audio playback error: {str(e)}", exc_info=True)
+            logger.error(f"[PLAYBACK] Audio playback error: {e}", exc_info=True)
         finally:
             # Only clear current_audio if it hasn't been changed
             with self.audio_lock:
@@ -234,7 +234,7 @@ class AudioPlayer:
             pg.mixer.music.stop()
             logger.debug("Stopped audio playback")
         except Exception as e:
-            logger.debug(f"Error stopping playback: {str(e)}")
+            logger.debug(f"Error stopping playback: {e}")
 
         # Wait for thread to finish if it exists and is alive
         if self.audio_thread and self.audio_thread.is_alive():
@@ -245,13 +245,18 @@ class AudioPlayer:
         Get the audio filename associated with an RFID ID.
 
         Args:
-            file_id (str): The RFID tag ID to look up
+            file_id (int): The RFID tag ID to look up
 
         Returns:
             str or None: The associated audio filename or None if not found
         """
-        record = self.session.query(RFIDAudio).filter_by(id=file_id).first()
-        return record.file if record else None
+        # Create a new session for thread safety
+        session = Session()
+        try:
+            record = session.query(RFIDAudio).filter_by(id=file_id).first()
+            return record.file if record else None
+        finally:
+            session.close()
 
     def get_files_in_folder(self):
         """
@@ -278,20 +283,27 @@ class AudioPlayer:
         Associate an audio file with an RFID ID in the database.
 
         Args:
-            file_id (str): The RFID tag ID
+            file_id (int): The RFID tag ID
             file_name (str): The audio filename to associate with the ID
         """
-        record = self.session.query(RFIDAudio).filter_by(id=file_id).first()
-        if record:
-            logger.info(
-                f"Updating RFID mapping: ID {file_id} from {record.file} to {file_name}"
-            )
-            record.file = file_name
-        else:
-            logger.info(f"Adding new RFID mapping: ID {file_id} to {file_name}")
-            record = RFIDAudio(id=file_id, file=file_name)
-            self.session.add(record)
-        self.session.commit()
+        session = Session()
+        try:
+            record = session.query(RFIDAudio).filter_by(id=file_id).first()
+            if record:
+                logger.info(
+                    f"Updating RFID mapping: ID {file_id} from {record.file} to {file_name}"
+                )
+                record.file = file_name
+            else:
+                logger.info(f"Adding new RFID mapping: ID {file_id} to {file_name}")
+                record = RFIDAudio(id=file_id, file=file_name)
+                session.add(record)
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
 
     def get_current_audio(self):
         """
@@ -365,7 +377,7 @@ class AudioPlayer:
 
             return True
         except Exception as e:
-            logger.error(f"Error setting volume: {str(e)}")
+            logger.error(f"Error setting volume: {e}")
             return False
 
     def get_volume(self):
@@ -413,7 +425,7 @@ class AudioPlayer:
                     if id_val != current_id:
                         current_id = id_val
                         logger.info(f"New RFID tag detected: {id_val}")
-                        self.play(str(id_val))
+                        self.play(id_val)
                         time.sleep(2)  # Debounce time
 
                 if id_val is None:
@@ -428,7 +440,7 @@ class AudioPlayer:
                     none_counter = 0
                     current_id = 0
             except Exception as e:
-                logger.error(f"Error in RFID reading loop: {str(e)}")
+                logger.error(f"Error in RFID reading loop: {e}")
                 # Reset counters on error
                 none_counter = 0
                 current_id = 0
@@ -443,9 +455,9 @@ class AudioPlayer:
             self.stop()
             pg.mixer.quit()
         except Exception as e:
-            logger.debug(f"Error during cleanup: {str(e)}")
+            logger.debug(f"Error during cleanup: {e}")
 
         try:
             self.session.close()
         except Exception as e:
-            logger.debug(f"Error closing session: {str(e)}")
+            logger.debug(f"Error closing session: {e}")

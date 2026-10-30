@@ -14,8 +14,9 @@ from luma.core.render import canvas
 from luma.oled.device import sh1106
 from luma.core.error import DeviceNotFoundError
 from PIL import ImageFont
+import threading
 
-from logger import get_logger
+from .logger import get_logger
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -26,12 +27,19 @@ logger = get_logger(__name__)
 class OLEDMenu:
     def __init__(
         self,
-        encoder_clk=os.getenv("ENCODER_CLK"),
-        encoder_dt=os.getenv("ENCODER_DT"),
-        confirm_pin=os.getenv("ENCODER_CONFIRM"),
+        encoder_clk=int(os.getenv("ENCODER_CLK")),
+        encoder_dt=int(os.getenv("ENCODER_DT")),
+        confirm_pin=int(os.getenv("ENCODER_CONFIRM")),
     ):
         logger.info("Initializing OLED menu system")
         self.display_available = self._initialize_display()
+        
+        # Threading synchronization
+        self.lock = threading.RLock()
+        self.shutdown_event = threading.Event()
+        self.needs_redraw = True
+        self.current_message = ""
+        self.currently_playing_audio = None
 
         # Menu states
         self.menu_options = [
@@ -59,24 +67,45 @@ class OLEDMenu:
         logger.info(f"Loaded DEFAULT_VOLUME: {self.volume_value}")
 
         try:
-            self.encoder_bounce_time = os.getenv("ENCODER_BOUNCE_TIME", 0.02)
+            self.encoder_bounce_time = float(os.getenv("ENCODER_BOUNCE_TIME", "0.02"))
             self.encoder = RotaryEncoder(
                 encoder_clk, encoder_dt, bounce_time=float(self.encoder_bounce_time)
             )
+            self.encoder.when_rotated = self.handle_rotation
             self.confirm = Button(
                 confirm_pin, bounce_time=float(self.encoder_bounce_time)
             )
 
-            self.encoder.when_rotated = self.handle_rotation
             self.confirm.when_pressed = self.on_confirm_pressed
             logger.info("Input controls initialized successfully")
+            
+            # Start render thread
+            self.render_thread = threading.Thread(target=self._render_loop, daemon=True)
+            self.render_thread.start()
+            logger.info("Render thread started")
         except Exception as e:
             logger.error(f"Failed to initialize input controls: {e}")
             raise
 
+    def _render_loop(self):
+        """Background thread for rendering the display."""
+        while not self.shutdown_event.is_set():
+            if self.display_available and self.needs_redraw:
+                with self.lock:
+                    self.needs_redraw = False
+                    self.update_display()
+            time.sleep(0.033)  # Cap at ~30 FPS
+
+    def stop(self):
+        """Stop the render thread."""
+        self.shutdown_event.set()
+        if hasattr(self, 'render_thread'):
+            self.render_thread.join(timeout=1.0)
+
     def _initialize_display(self):
         try:
-            self.serial = i2c(port=1, address=0x3C)
+            i2c_address = int(os.getenv("I2C_ADDRESS", "0x3C"), 16)
+            self.serial = i2c(port=1, address=i2c_address)
             self.device = sh1106(self.serial)
             self.font = ImageFont.load_default()
             logger.info("OLED display initialized successfully")
@@ -103,35 +132,33 @@ class OLEDMenu:
         Handle rotary encoder rotation events.
         Now includes volume adjustment mode.
         """
-        if (
-            self.current_menu == "currently_playing"
-            or self.current_menu == "add_update"
-        ):
-            self.encoder.steps = 0
-            return
+        with self.lock:
+            if self.current_menu in ("currently_playing", "add_update", "message"):
+                self.encoder.steps = 0
+                return
 
-        # Get the current state of the encoder
-        steps = self.encoder.steps
-        if steps != 0:
-            if (
-                self.current_menu == "audio_menu"
-                and self.audio_menu_selection == 1
-                and self.adjusting_volume
-            ):
-                # Adjust volume
-                self.volume_value = max(0, min(100, self.volume_value + steps * 5))
-                logger.debug(f"Volume adjusted to: {self.volume_value}%")
-            else:
-                # Regular menu navigation
-                if steps > 0:
-                    for _ in range(steps):
-                        self._change_selection(1)  # Down
+            # Get the current state of the encoder
+            steps = self.encoder.steps
+            if steps != 0:
+                if (
+                    self.current_menu == "audio_menu"
+                    and self.audio_menu_selection == 1
+                    and self.adjusting_volume
+                ):
+                    # Adjust volume
+                    self.volume_value = max(0, min(100, self.volume_value + steps * 5))
+                    logger.debug(f"Volume adjusted to: {self.volume_value}%")
                 else:
-                    for _ in range(abs(steps)):
-                        self._change_selection(-1)  # Up
+                    # Regular menu navigation
+                    if steps > 0:
+                        for _ in range(steps):
+                            self._change_selection(1)  # Down
+                    else:
+                        for _ in range(abs(steps)):
+                            self._change_selection(-1)  # Up
 
-            self.encoder.steps = 0
-            self.update_display()
+                self.encoder.steps = 0
+                self.needs_redraw = True
 
     def _change_selection(self, direction):
         """
@@ -177,7 +204,8 @@ class OLEDMenu:
 
     def on_confirm_pressed(self):
         """Handle confirmation"""
-        self.option_confirmed = True
+        with self.lock:
+            self.option_confirmed = True
         logger.debug(f"Selection confirmed in menu: {self.current_menu}")
 
     def _draw_menu_items(
@@ -214,8 +242,8 @@ class OLEDMenu:
                 prefix = prefix_selected if i == selection else prefix_normal
                 draw.text((0, y_pos), f"{prefix} {item}", font=self.font, fill="white")
 
-    def display_menu(self):
-        logger.debug("Displaying main menu")
+    def _render_menu(self):
+        logger.debug("Rendering main menu")
         self._safe_draw(
             lambda draw: (
                 draw.text((0, 0), "RFID Audio Player", font=self.font, fill="white"),
@@ -223,8 +251,13 @@ class OLEDMenu:
             )
         )
 
-    def display_yes_no_menu(self):
-        logger.debug("Displaying yes/no menu")
+    def display_menu(self):
+        with self.lock:
+            self.current_menu = "main"
+            self.needs_redraw = True
+
+    def _render_yes_no_menu(self):
+        logger.debug("Rendering yes/no menu")
         self._safe_draw(
             lambda draw: (
                 draw.text((0, 0), "Overwrite?", font=self.font, fill="white"),
@@ -235,8 +268,13 @@ class OLEDMenu:
             )
         )
 
-    def display_file_menu(self, files):
-        logger.debug(f"Displaying file menu with {len(files)} files")
+    def display_yes_no_menu(self):
+        with self.lock:
+            self.current_menu = "yes_no"
+            self.needs_redraw = True
+
+    def _render_file_menu(self, files):
+        logger.debug(f"Rendering file menu with {len(files)} files")
         self._safe_draw(
             lambda draw: (
                 draw.text((0, 0), "Files:", font=self.font, fill="white"),
@@ -244,8 +282,15 @@ class OLEDMenu:
             )
         )
 
-    def display_current_audio(self, current_audio):
-        logger.debug(f"Displaying current audio: {current_audio}")
+    def display_file_menu(self, files):
+        with self.lock:
+            if self.current_menu != "files" or self.file_options != files:
+                self.current_menu = "files"
+                self.file_options = files
+                self.needs_redraw = True
+
+    def _render_current_audio(self, current_audio):
+        logger.debug(f"Rendering current audio: {current_audio}")
 
         def draw_callback(draw):
             draw.text((0, 0), "Now Playing:", font=self.font, fill="white")
@@ -263,8 +308,18 @@ class OLEDMenu:
 
         self._safe_draw(draw_callback)
 
-    def display_audio_output_menu(self):
-        logger.debug("Displaying audio output menu")
+    def display_current_audio(self, current_audio):
+        with self.lock:
+            if (
+                self.current_menu != "currently_playing"
+                or self.currently_playing_audio != current_audio
+            ):
+                self.current_menu = "currently_playing"
+                self.currently_playing_audio = current_audio
+                self.needs_redraw = True
+
+    def _render_audio_output_menu(self):
+        logger.debug("Rendering audio output menu")
         self._safe_draw(
             lambda draw: (
                 draw.text((0, 0), "Audio Output:", font=self.font, fill="white"),
@@ -274,8 +329,13 @@ class OLEDMenu:
             )
         )
 
-    def display_message(self, message):
-        logger.debug(f"Displaying message: {message[:20]}...")
+    def display_audio_output_menu(self):
+        with self.lock:
+            self.current_menu = "audio_output"
+            self.needs_redraw = True
+
+    def _render_message(self, message):
+        logger.debug(f"Rendering message: {message[:20]}...")
 
         def draw_callback(draw):
             lines = self._wrap_text_to_lines(message, max_chars=18)
@@ -284,8 +344,15 @@ class OLEDMenu:
 
         self._safe_draw(draw_callback)
 
-    def display_audio_menu(self):
-        logger.debug("Displaying audio settings menu")
+    def display_message(self, message):
+        with self.lock:
+            if self.current_menu != "message" or self.current_message != message:
+                self.current_menu = "message"
+                self.current_message = message
+                self.needs_redraw = True
+
+    def _render_audio_menu(self):
+        logger.debug("Rendering audio settings menu")
 
         def draw_callback(draw):
             draw.text((0, 0), "Audio Settings:", font=self.font, fill="white")
@@ -324,6 +391,11 @@ class OLEDMenu:
 
         self._safe_draw(draw_callback)
 
+    def display_audio_menu(self):
+        with self.lock:
+            self.current_menu = "audio_menu"
+            self.needs_redraw = True
+
     def _wrap_text_to_lines(self, text, max_chars=18):
         """
         Split text into lines with word wrapping.
@@ -335,43 +407,42 @@ class OLEDMenu:
         Returns:
             list: List of wrapped text lines
         """
-        words = text.split()
         lines = []
-        current_line = []
-
-        for word in words:
-            # If adding this word exceeds max length
-            if len(" ".join(current_line + [word])) <= max_chars:
-                current_line.append(word)
-            else:
-                # Add the current line and start a new one
-                if current_line:
-                    lines.append(" ".join(current_line))
-                current_line = [word]
-
-        # Add the last line if not empty
-        if current_line:
-            lines.append(" ".join(current_line))
-
+        for paragraph in text.splitlines():
+            words = paragraph.split()
+            current_line = []
+            for word in words:
+                if len(" ".join(current_line + [word])) <= max_chars:
+                    current_line.append(word)
+                else:
+                    if current_line:
+                        lines.append(" ".join(current_line))
+                    current_line = [word]
+            if current_line:
+                lines.append(" ".join(current_line))
         return lines
 
     def update_display(self):
         """Update the display based on current menu state."""
         if self.current_menu == "main":
-            self.display_menu()
+            self._render_menu()
         elif self.current_menu == "yes_no":
-            self.display_yes_no_menu()
+            self._render_yes_no_menu()
         elif self.current_menu == "files" and self.file_options:
-            self.display_file_menu(self.file_options)
+            self._render_file_menu(self.file_options)
         elif self.current_menu == "currently_playing":
             current = (
-                self.get_current_audio() if hasattr(self, "get_current_audio") else None
+                self.get_current_audio()
+                if hasattr(self, "get_current_audio")
+                else self.currently_playing_audio
             )
-            self.display_current_audio(current)
+            self._render_current_audio(current)
         elif self.current_menu == "audio_output":
-            self.display_audio_output_menu()
+            self._render_audio_output_menu()
         elif self.current_menu == "audio_menu":
-            self.display_audio_menu()
+            self._render_audio_menu()
+        elif self.current_menu == "message":
+            self._render_message(self.current_message)
 
     def wait_for_confirmation(self, timeout=None):
         """
@@ -384,12 +455,21 @@ class OLEDMenu:
             bool: True if confirmed, False if timed out
         """
         logger.debug(f"Waiting for confirmation with timeout: {timeout}s")
-        self.option_confirmed = False
+        with self.lock:
+            self.option_confirmed = False
         start_time = time.time()
-        while not self.option_confirmed:
+
+        while True:
+            # Check for timeout
             if timeout and (time.time() - start_time > timeout):
                 logger.debug("Confirmation wait timed out")
                 return False
-            time.sleep(0.1)
-        logger.debug("Received confirmation")
-        return True
+
+            # Check if confirmed (thread-safe)
+            with self.lock:
+                if self.option_confirmed:
+                    logger.debug("Received confirmation")
+                    return True
+
+            # Small sleep to avoid busy-waiting
+            time.sleep(0.05)

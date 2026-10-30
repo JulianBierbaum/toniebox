@@ -3,11 +3,11 @@ import sys
 import threading as th
 import time
 
-from audio_player import AudioPlayer
-from logger import get_logger
-from model import init_db
-from oled_menu import OLEDMenu
-from rfid_reader import RFIDReader
+from .audio_player import AudioPlayer
+from .logger import get_logger
+from .model import init_db
+from .oled_menu import OLEDMenu
+from .rfid_reader import RFIDReader
 
 # Initialize logger
 logger = get_logger(__name__)
@@ -94,6 +94,7 @@ def main():
                     logger.debug("Entering Currently Playing menu")
                     oled_menu.option_confirmed = False
                     oled_menu.current_menu = "currently_playing"
+                    oled_menu.needs_redraw = True
                     while (
                         not oled_menu.option_confirmed and not shutdown_event.is_set()
                     ):
@@ -101,12 +102,14 @@ def main():
                         oled_menu.display_current_audio(current)
                         time.sleep(0.5)
                     oled_menu.current_menu = "main"
+                    oled_menu.needs_redraw = True
 
                 elif oled_menu.menu_selection == 1:  # Add/Update Audio
                     logger.info("Entering Add/Update Audio menu")
                     audio_player.stop()
                     audio_player.reader_active = False
                     oled_menu.current_menu = "add_update"
+                    oled_menu.needs_redraw = True
 
                     try:
                         oled_menu.display_message("Hold RFID chip to reader")
@@ -125,7 +128,7 @@ def main():
                             continue
 
                         logger.info(f"Detected RFID tag: {id_val}")
-                        existing = audio_player.get_file(str(id_val))
+                        existing = audio_player.get_file(id_val)
                         if existing:
                             oled_menu.display_message(
                                 f"Tag ID: {id_val}\nCurrent: {existing}"
@@ -174,16 +177,16 @@ def main():
 
                         selected_file = files[oled_menu.file_selection]
                         logger.info(f"Mapping tag {id_val} to file {selected_file}")
-                        audio_player.add_file_to_db(str(id_val), selected_file)
+                        audio_player.add_file_to_db(id_val, selected_file)
 
                         oled_menu.display_message(
-                            f"Added: {selected_file}\nID: {str(id_val)}"
+                            f"Added: {selected_file}\nID: {id_val}"
                         )
                         time.sleep(2)
 
                     except Exception as e:
-                        logger.error(f"Error in Add/Update Audio menu: {str(e)}")
-                        oled_menu.display_message(f"Error: {str(e)}")
+                        logger.error(f"Error in Add/Update Audio menu: {e}")
+                        oled_menu.display_message(f"Error: {e}")
                         time.sleep(2)
                     finally:
                         logger.debug("Resetting reader active state")
@@ -227,8 +230,8 @@ def main():
                                 oled_menu.display_current_audio(current)
                                 time.sleep(0.5)
                         except Exception as e:
-                            logger.error(f"Playback error: {str(e)}")
-                            oled_menu.display_message(f"Playback error: {str(e)}")
+                            logger.error(f"Playback error: {e}")
+                            oled_menu.display_message(f"Playback error: {e}")
                             time.sleep(2)
                         finally:
                             logger.debug("Stopping playback and resetting reader")
@@ -253,15 +256,13 @@ def main():
                     oled_menu.audio_output_selection = (
                         0 if current_device == "speaker" else 1
                     )
+                    oled_menu.display_audio_menu()
 
                     # Menu interaction loop
                     oled_menu.option_confirmed = False
                     while (
                         not oled_menu.option_confirmed and not shutdown_event.is_set()
                     ):
-                        # Display the menu
-                        oled_menu.display_audio_menu()
-
                         # Wait for user input
                         time.sleep(0.1)
 
@@ -296,6 +297,7 @@ def main():
 
                                 # Reset confirmation flag to stay in the menu
                                 oled_menu.option_confirmed = False
+                                oled_menu.display_audio_menu()
 
                             elif oled_menu.audio_menu_selection == 2:  # Output Device
                                 # Toggle between speaker and aux
@@ -342,21 +344,26 @@ def main():
 
                                 # Reset confirmation flag to stay in the menu
                                 oled_menu.option_confirmed = False
+                                oled_menu.display_audio_menu()
 
                     # Reset to main menu
                     oled_menu.current_menu = "main"
 
         except KeyboardInterrupt:
-            logger.info("Application terminated by user via keyboard")
+            logger.info("Keyboard interrupt received")
         except Exception as e:
-            logger.critical(f"Unexpected error in main loop: {str(e)}", exc_info=True)
+            logger.critical(f"Unhandled exception in main loop: {e}", exc_info=True)
         finally:
-            logger.info("Cleaning up resources")
-            audio_player.stop()
+            logger.info("Cleaning up...")
             shutdown_event.set()
+            if 'oled_menu' in locals():
+                oled_menu.stop()
+            if 'audio_player' in locals():
+                audio_player.stop()
+            logger.info("Application shutdown complete")
 
     except Exception as e:
-        logger.critical(f"Fatal initialization error: {str(e)}", exc_info=True)
+        logger.critical(f"Fatal initialization error: {e}", exc_info=True)
         sys.exit(1)
 
 
