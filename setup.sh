@@ -39,10 +39,10 @@ fi
 echo "Setting up audio player service..."
 SERVICE_FILE="/etc/systemd/system/audio_player.service"
 
-sudo tee $SERVICE_FILE > /dev/null << EOT
+sudo tee "$SERVICE_FILE" > /dev/null << EOT
 [Unit]
 Description=Python Audio Player (Continuous)
-After=media-pi.mount
+After=media-usb.mount
 Wants=sound.target
 
 [Service]
@@ -65,7 +65,7 @@ EOT
 
 # Add user to audio group
 echo "Adding $CURRENT_USER to audio group..."
-sudo usermod -a -G audio $CURRENT_USER
+sudo usermod -a -G audio "$CURRENT_USER"
 
 # Optimize system services for faster boot and reduced overhead
 echo "Optimizing system services..."
@@ -97,13 +97,13 @@ USB_DEV=$(lsblk -rno NAME,TRAN | grep 'usb' | awk '{print $1}' | grep '[0-9]$' |
 if [ -n "$USB_DEV" ]; then
     USB_DEV="/dev/$USB_DEV"
     echo "Found USB device: $USB_DEV"
-    USB_UUID=$(sudo blkid $USB_DEV | awk -F'UUID="' '{print $2}' | awk -F'"' '{print $1}')
+    USB_UUID=$(sudo blkid "$USB_DEV" | awk -F'UUID="' '{print $2}' | awk -F'"' '{print $1}')
     
     if [ -n "$USB_UUID" ]; then
         echo "USB UUID detected: $USB_UUID"
         # Create mount point if it doesn't exist
         MOUNT_POINT="${USB_MOUNT_POINT:-/media/usb}"
-        sudo mkdir -p $MOUNT_POINT
+        sudo mkdir -p "$MOUNT_POINT"
         
         # Add entry to fstab
         echo "Updating fstab..."

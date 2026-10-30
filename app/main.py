@@ -256,15 +256,13 @@ def main():
                     oled_menu.audio_output_selection = (
                         0 if current_device == "speaker" else 1
                     )
+                    oled_menu.display_audio_menu()
 
                     # Menu interaction loop
                     oled_menu.option_confirmed = False
                     while (
                         not oled_menu.option_confirmed and not shutdown_event.is_set()
                     ):
-                        # Display the menu
-                        oled_menu.display_audio_menu()
-
                         # Wait for user input
                         time.sleep(0.1)
 
@@ -299,6 +297,7 @@ def main():
 
                                 # Reset confirmation flag to stay in the menu
                                 oled_menu.option_confirmed = False
+                                oled_menu.display_audio_menu()
 
                             elif oled_menu.audio_menu_selection == 2:  # Output Device
                                 # Toggle between speaker and aux
@@ -345,6 +344,7 @@ def main():
 
                                 # Reset confirmation flag to stay in the menu
                                 oled_menu.option_confirmed = False
+                                oled_menu.display_audio_menu()
 
                     # Reset to main menu
                     oled_menu.current_menu = "main"

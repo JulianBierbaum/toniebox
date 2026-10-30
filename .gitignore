@@ -2,3 +2,5 @@ uv.lock
 .venv
 .ruff_cache
 __pycache__
+rfid_audio.db
+logs

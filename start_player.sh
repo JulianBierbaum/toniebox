@@ -12,4 +12,4 @@ else
 fi
 
 # Start the application
-python app/main.py
+python -m app.main
