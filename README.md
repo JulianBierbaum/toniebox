@@ -39,11 +39,13 @@ uv sync
 
 ### 2. Configuration
 
-Create a `.env` file from the example (or manually):
+Review and edit `.env` to match your hardware setup and mount paths:
 
 ```bash
-cp .env.example .env
-# Edit .env to set I2C_ADDRESS, USB_MOUNT_POINT, etc.
+nano .env
+# Key settings:
+# MEDIA_PATH, USB_MOUNT_POINT, DEFAULT_AUDIO_DEVICE, DEFAULT_VOLUME
+# ENCODER_CLK=27, ENCODER_DT=22, ENCODER_CONFIRM=17, I2C_ADDRESS=0x3C
 ```
 
 ### 3. Raspberry Pi Interface Configuration
@@ -154,10 +156,38 @@ dtparam=i2c_arm_baudrate=400000
 sudo reboot
 ```
 
-## Debugging
+---
+
+## Project Structure & Running Manually
+
+- `app/` — Core application package (`main.py`, `audio_player.py`, `oled_menu.py`, `rfid_reader.py`, `model.py`, `logger.py`).
+- `tools/` — Standalone hardware diagnostic scripts (`find_pins.py`, `test_display.py`, `test_encoder.py`, `test_rfid.py`).
+
+To start the player manually:
+
+```bash
+./start_player.sh
+# or directly via uv:
+uv run python -m app.main
+```
+
+---
+
+## Debugging & Hardware Diagnostics
 
 Logs are written to the `logs` directory. To watch logs live:
 
 ```bash
 tail -f logs/rfid_player.log
+```
+
+To test individual hardware components in isolation (stop `audio_player.service` first so GPIO/SPI/I2C pins are free):
+
+```bash
+sudo systemctl stop audio_player.service
+
+uv run python tools/test_display.py   # Test SH1106 OLED over I2C
+uv run python tools/test_encoder.py   # Test rotary encoder rotation & button press
+uv run python tools/test_rfid.py      # Test MFRC522 RFID tag reading
+uv run python tools/find_pins.py      # Monitor all GPIO pins to identify wiring
 ```
